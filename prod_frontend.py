@@ -1,36 +1,59 @@
-import streamlit as st
-import requests
-
-API = 'http://localhost:8000'
-st.set_page_config(page_title='Xavier OS', layout='wide')
-st.title('Xavier OS')
-st.caption('Audiovisual AI story platform')
-
-page = st.sidebar.radio('Mode', ['Library', 'Story Engine', 'Visual Storyboard', 'Abilities', 'Admin'])
-series_list = ['My Vampire System', 'My Dragonic System', 'Shadow Blade', 'Birth of a Demonic Sword', 'Legendary Beast Tamer', 'Gods Eye', 'Star Forge Academy', 'Chronicle of Ash', 'Neon Soul', 'Void Merchant']
-
-if page == 'Library':
-    st.subheader('Library')
-    st.write('\n'.join([f'• {s}' for s in series_list]))
-
-elif page == 'Story Engine':
-    series = st.selectbox('Series', series_list)
-    chapter = st.number_input('Chapter', 1, 99999, 1)
-    character = st.text_input('Main character', 'Xavier')
-    if st.button('Generate story'):
-        r = requests.post(f'{API}/generate-story', json={'series': series, 'chapter': int(chapter), 'character': character})
-        st.json(r.json())
-
-elif page == 'Visual Storyboard':
-    st.write('Visual prompts generated per scene so images remain consistent with character growth and canon.')
-    st.image('https://placehold.co/1200x500/png?text=Xavier+OS+Visual+Storyboard')
-
-elif page == 'Abilities':
-    user = st.text_input('User id', 'demo_user')
-    abilities = st.multiselect('Abilities', ['Vampire Sight', 'Dragon Scale', 'Shadow Step', 'Demonic Edge', 'Beast Bond', 'God Vision'])
-    if st.button('Fuse abilities'):
-        r = requests.post(f'{API}/fuse-abilities', json={'user_id': user, 'abilities': abilities})
-        st.json(r.json())
-
-else:
-    st.write('Admin controls for TTS, moderation, analytics, billing, and deployment would be connected here.')
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Xavier OS ∞ Quinn Talen</title>
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
+    button { background: #8B0000; color: white; padding: 15px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #B22222; }
+    .chapter { background: #1a1a1a; color: #ccc; padding: 20px; margin: 20px 0; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>🧛‍♂️ QUINN TALEN ∞ AUDIOBOOK LIVE</h1>
+  <p>Voidbreaker Arc - Never-Ending God-Slaying Saga</p>
+  
+  <div id="progress">
+    <h3>Quinn Level: <span id="level">1</span> | XP: <span id="xp">0</span></h3>
+    <button onclick="generateChapter()">🎧 Next Quinn Chapter ∞</button>
+    <button onclick="playVoice()">🔊 Quinn Voice (alloy)</button>
+  </div>
+  
+  <div id="chapter"></div>
+  <audio id="audio" controls style="width:100%; margin:20px 0;"></audio>
+  
+  <script>
+    let chapterNum = 47;
+    let level = 1, xp = 0;
+    
+    async function generateChapter() {
+      const res = await fetch('/api/generate-story', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({series: 'My Vampire System', chapter: chapterNum, character: 'Quinn Talen'})
+      });
+      const data = await res.json();
+      document.getElementById('chapter').innerHTML = 
+        `<div class="chapter">
+          <h2>${data.title}</h2>
+          <p>${data.body.substring(0, 2000)}...</p>
+          <button onclick="playVoice('${data.body}')">Play Full Chapter</button>
+        </div>`;
+      chapterNum++; xp += 23; level = Math.floor(xp/100)+1;
+      document.getElementById('level').textContent = level;
+      document.getElementById('xp').textContent = xp;
+    }
+    
+    async function playVoice(text) {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text: text.substring(0, 1000)})
+      });
+      const data = await res.json();
+      document.getElementById('audio').src = data.audio_url;
+      document.getElementById('audio').play();
+    }
+  </script>
+</body>
+</html>
