@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    {"src": "prod_backend.py", "use": "@vercel/python"},
+    {"src": "prod_frontend.py", "use": "@vercel/static-build", "config": {"distDir": "streamlit_build"}}
+  ],
+  "routes": [
+    {"src": "/api/(.*)", "dest": "prod_backend.py"},
+    {"src": "/(.*)", "dest": "/streamlit_build/index.html"}
+  ]
+}
