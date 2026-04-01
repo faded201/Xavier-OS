@@ -1,11 +1,11 @@
 {
-  "version": 2,
-  "builds": [
-    {"src": "prod_backend.py", "use": "@vercel/python"},
-    {"src": "prod_frontend.py", "use": "@vercel/static-build", "config": {"distDir": "streamlit_build"}}
-  ],
-  "routes": [
-    {"src": "/api/(.*)", "dest": "prod_backend.py"},
-    {"src": "/(.*)", "dest": "/streamlit_build/index.html"}
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.11"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/(.*)", "destination": "/prod_frontend.py" }
   ]
 }
