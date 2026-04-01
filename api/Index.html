@@ -1,9 +1,0 @@
-<button onclick="generate()">Generate Chapter</button>
-
-<script>
-async function generate() {
-  const res = await fetch("/api/generate");
-  const data = await res.json();
-  document.getElementById("story").innerText = data.chapter;
-}
-</script>
