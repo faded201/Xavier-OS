@@ -1,1 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Xavier OS</title>
+</head>
+<body style="font-family: Arial; padding: 20px; background: black; color: white;">
 
+  <h1>⚡ Xavier OS</h1>
+  <p>AI Audiobook Engine</p>
+
+  <button onclick="generate()">Generate Chapter</button>
+
+  <h3>Story:</h3>
+  <p id="story">Click button to begin...</p>
+
+  <script>
+    async function generate() {
+      const res = await fetch("/api/generate");
+      const data = await res.json();
+      document.getElementById("story").innerText = data.chapter;
+    }
+  </script>
+
+</body>
+</html>
