@@ -142,7 +142,6 @@ function openReader(title){
 function renderPage(){
   const content = currentPages[currentPage];
   document.getElementById("readerContent").innerHTML = content;
-
   speak(content);
 }
 
@@ -192,43 +191,66 @@ function applyRarityStyle(el, rarity){
 }
 
 /* =========================
-   🔥 BOOSTS
-========================= */
-function getBoost(name){
-  if(name==="Vampire System") return 1.5;
-  if(name==="Gods Eye") return 2;
-  if(name==="My Dragonic System") return 1.7;
-  if(name==="Dragon Inside of Me") return 1.6;
-  return 1;
-}
-
-/* =========================
-   ✨ PARTICLES
+   ✨ PARTICLES (ONLY WHEN ACTIVE)
 ========================= */
 function spawnParticles(el){
   const c = el.querySelector(".particles");
 
-  setInterval(()=>{
+  if(!c) return;
+
+  const interval = setInterval(()=>{
+    if(!el.classList.contains("active")) {
+      clearInterval(interval);
+      return;
+    }
+
     const p = document.createElement("div");
     p.className="particle";
     p.style.left=Math.random()*100+"%";
     c.appendChild(p);
+
     setTimeout(()=>p.remove(),3000);
   },200);
 }
 
 /* =========================
-   📖 CREATE BOOK
+   📖 CREATE BOOK (DEAD MODE)
 ========================= */
 function createBook(name){
 
-  const b=document.createElement("div");
-  b.className="book";
+  const b = document.createElement("div");
+  b.className = "book dead";
 
   const rarity = getRarity();
+  b.dataset.rarity = rarity;
+  b.dataset.name = name;
+
+  b.innerHTML = `
+    <div class="placeholder"></div>
+    <div class="book-title">${name}</div>
+  `;
+
+  b.onclick = () => activateBook(b);
+
+  return b;
+}
+
+/* =========================
+   ⚡ ACTIVATE BOOK
+========================= */
+function activateBook(b){
+
+  if(b.classList.contains("active")) return;
+
+  const name = b.dataset.name;
+  const rarity = b.dataset.rarity;
+
+  b.classList.remove("dead");
+  b.classList.add("active");
+
   applyRarityStyle(b, rarity);
 
-  b.innerHTML=`
+  b.innerHTML = `
     <div class="book-inner">
       <div class="page">
         ${name}<br><small>${rarity.toUpperCase()}</small>
@@ -238,14 +260,14 @@ function createBook(name){
     <div class="particles"></div>
   `;
 
-  b.onclick=()=>{
-    b.classList.toggle("open");
-    if(whisper) whisper.play().catch(()=>{});
-    openReader(name);
-  };
-
   spawnParticles(b);
-  return b;
+
+  if(whisper) whisper.play().catch(()=>{});
+
+  setTimeout(()=>{
+    b.classList.toggle("open");
+    openReader(name);
+  }, 150);
 }
 
 /* =========================
@@ -255,9 +277,7 @@ function addXP(){
 
   if(!currentBook) return;
 
-  const boost = getBoost(currentBook);
-
-  player.xp += 10 * boost;
+  player.xp += 10;
 
   if(player.xp >= player.level * 100){
     player.xp = 0;
@@ -268,8 +288,6 @@ function addXP(){
   save();
   renderStats();
 }
-
-function manualXP(){ addXP(); }
 
 /* =========================
    📚 SPAWN
