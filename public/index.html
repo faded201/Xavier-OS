@@ -6,16 +6,17 @@
 
 <style>
 
-/* 🌌 BACKGROUND */
+/* 🌌 GLOBAL */
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
   color: white;
   overflow-x: hidden;
 
-  background: radial-gradient(circle at 20% 30%, #1a1f4b, transparent),
-              radial-gradient(circle at 80% 70%, #4b1a3a, transparent),
-              radial-gradient(circle at center, #050510, #000000);
+  background:
+    radial-gradient(circle at 20% 30%, #1a1f4b, transparent),
+    radial-gradient(circle at 80% 70%, #4b1a3a, transparent),
+    radial-gradient(circle at center, #050510, #000000);
 
   background-size: 200% 200%;
   animation: backgroundShift 15s ease infinite;
@@ -27,7 +28,7 @@ body {
   100% { background-position: 0% 50%; }
 }
 
-/* ✨ MAGIC OVERLAY */
+/* ✨ MAGIC ROTATION */
 body::before {
   content: "";
   position: fixed;
@@ -35,9 +36,9 @@ body::before {
   height: 200%;
   top: -50%;
   left: -50%;
+
   background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
   animation: rotateMagic 40s linear infinite;
-  z-index: 0;
 }
 
 @keyframes rotateMagic {
@@ -45,22 +46,76 @@ body::before {
   100% { transform: rotate(360deg); }
 }
 
+/* 🌌 HOLOGRAPHIC LIGHT */
+body::after {
+  content: "";
+  position: fixed;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(120,180,255,0.08),
+    transparent,
+    rgba(200,120,255,0.08),
+    transparent
+  );
+
+  animation: holoSweep 12s linear infinite;
+}
+
+@keyframes holoSweep {
+  0% { transform: rotate(0deg) translateX(-20%); }
+  100% { transform: rotate(360deg) translateX(20%); }
+}
+
+/* 🔥 FIRELIGHT */
+.fire-glow {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255,140,50,0.25), transparent);
+}
+
+/* 🌟 RUNES */
+.rune {
+  position: fixed;
+  font-size: 22px;
+  opacity: 0.12;
+  animation: floatRune 25s linear infinite;
+}
+
+@keyframes floatRune {
+  0% { transform: translateY(100vh) rotate(0deg); }
+  100% { transform: translateY(-10vh) rotate(360deg); }
+}
+
 /* 🔥 CANVAS */
 #fireflies {
   position: fixed;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
 }
 
 /* 🎬 TITLE */
 h1 {
   text-align: center;
-  text-shadow: 0 0 20px white;
-  z-index: 2;
-  position: relative;
+  font-size: 32px;
+
+  background: linear-gradient(90deg,#6df,#c8f,#6df);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: holoFlow 5s linear infinite;
+}
+
+@keyframes holoFlow {
+  0% { background-position: 0% }
+  100% { background-position: 200% }
 }
 
 /* 🎥 SCENE */
@@ -68,7 +123,6 @@ h1 {
   width: 100%;
   height: 250px;
   object-fit: cover;
-  z-index: 1;
 }
 
 /* 💬 SUBTITLES */
@@ -79,30 +133,45 @@ h1 {
   text-align: center;
   background: rgba(0,0,0,0.6);
   padding: 10px;
-  z-index: 3;
 }
 
-/* 📚 BOOKS */
+/* 📚 GRID */
 #rows {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+/* 🔮 HOLOGRAPHIC CARDS */
 .card {
   margin: 15px;
   padding: 20px;
-  width: 80%;
+  width: 85%;
   max-width: 400px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 15px;
+
+  border-radius: 20px;
+
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+
+  border: 1px solid rgba(255,255,255,0.2);
+
   text-align: center;
   cursor: pointer;
+
   transition: 0.3s;
+
+  box-shadow:
+    0 0 10px rgba(120,150,255,0.2);
 }
 
+/* ✨ POWER HOVER */
 .card:hover {
-  transform: scale(1.05);
+  transform: scale(1.06);
+
+  box-shadow:
+    0 0 25px rgba(120,180,255,0.7),
+    0 0 50px rgba(200,120,255,0.5);
 }
 
 </style>
@@ -111,6 +180,11 @@ h1 {
 <body>
 
 <canvas id="fireflies"></canvas>
+<div class="fire-glow"></div>
+
+<div class="rune" style="left:10%">✧</div>
+<div class="rune" style="left:40%">𓂀</div>
+<div class="rune" style="left:70%">⚚</div>
 
 <h1>🎧 Cinematic Audiobooks</h1>
 
@@ -178,7 +252,7 @@ function playBook(title){
   next();
 }
 
-/* ✨ FIREFLIES */
+/* ✨ FIREflies (OPTIMISED) */
 const canvas = document.getElementById("fireflies");
 const ctx = canvas.getContext("2d");
 
@@ -187,36 +261,30 @@ canvas.height = window.innerHeight;
 
 let particles = [];
 
-for (let i = 0; i < 80; i++) {
+for (let i = 0; i < 40; i++) {
   particles.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 2 + 1,
-    dx: (Math.random() - 0.5) * 0.6,
-    dy: (Math.random() - 0.5) * 0.6,
-    glow: Math.random()
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    r: Math.random()*2+1,
+    dx:(Math.random()-0.5)*0.3,
+    dy:(Math.random()-0.5)*0.3
   });
 }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  particles.forEach(p => {
-
-    const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*6);
-    g.addColorStop(0, `rgba(255,255,200,${p.glow})`);
-    g.addColorStop(1, "transparent");
-
-    ctx.fillStyle = g;
+  particles.forEach(p=>{
+    ctx.fillStyle="rgba(255,240,180,0.8)";
     ctx.beginPath();
-    ctx.arc(p.x,p.y,p.r*6,0,Math.PI*2);
+    ctx.arc(p.x,p.y,p.r*2,0,Math.PI*2);
     ctx.fill();
 
-    p.x += p.dx;
-    p.y += p.dy;
+    p.x+=p.dx;
+    p.y+=p.dy;
 
-    if(p.x<0||p.x>canvas.width) p.dx*=-1;
-    if(p.y<0||p.y>canvas.height) p.dy*=-1;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
   });
 
   requestAnimationFrame(draw);
