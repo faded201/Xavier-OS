@@ -1,109 +1,122 @@
+/* 🌌 Background */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: radial-gradient(circle at center, #1a1f2b, #050507);
+  color: white;
+}
+
+/* 🔥 Canvas */
+#fireflies {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 🔝 Keep UI above */
+.audiobook-container,
+h1 {
+  position: relative;
+  z-index: 2;
+}
+
+/* 📦 Container */
 .audiobook-container {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
+  justify-content: center;
   padding: 20px;
-  background: linear-gradient(135deg, #f0f8ff, #e6e6fa);
+  gap: 20px;
 }
 
+/* 🔮 Card */
 .audiobook-card {
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  margin: 15px;
+  position: relative;
+  overflow: hidden;
+  width: 220px;
   padding: 20px;
+  border-radius: 15px;
   text-align: center;
-  width: 200px;
-  transition: transform 0.3s, box-shadow 0.3s;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  color: white;
+
+  animation: fadeIn 0.5s ease-in, float 4s ease-in-out infinite;
+  transition: 0.3s;
 }
 
+/* ✨ Glow layer */
+.audiobook-card::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.15), transparent);
+  animation: rotateGlow 8s linear infinite;
+}
+
+/* 🖱 Hover */
 .audiobook-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px) scale(1.05);
 }
 
+/* 📚 Text */
 .audiobook-title {
-  font-size: 1.5em;
-  color: #4a4a4a;
+  font-size: 1.3em;
   margin-bottom: 10px;
 }
 
 .audiobook-series {
-  font-size: 1em;
-  color: #7a7a7a;
+  font-size: 0.9em;
+  color: #bbb;
   margin-bottom: 15px;
 }
 
+/* 🔘 Button */
 .audiobook-button {
-  background-color: #4a90e2;
+  background: linear-gradient(135deg, #4a90e2, #6fc3ff);
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
+  padding: 10px;
   color: white;
   cursor: pointer;
-  padding: 10px;
-  transition: background-color 0.3s;
 }
 
 .audiobook-button:hover {
-  background-color: #357ab8;
+  transform: scale(1.1);
 }
 
+/* 🎨 Series borders */
+.series-my-vampire-system { border-left: 5px solid #9b59b6; }
+.series-my-dragonic-system { border-left: 5px solid #e67e22; }
+.series-shadow-blade { border-left: 5px solid #2980b9; }
+
+/* ✨ Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.audiobook-card {
-  animation: fadeIn 0.5s ease-in;
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
 }
 
-/* Individual Series Styles */
-
-.series-my-vampire-system .audiobook-card {
-  border-left: 5px solid #9b59b6;
+@keyframes rotateGlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.series-my-dragonic-system .audiobook-card {
-  border-left: 5px solid #e67e22;
-}
-
-.series-shadow-blade .audiobook-card {
-  border-left: 5px solid #2980b9;
-}
-
-.series-birth-of-a-demonic-sword .audiobook-card {
-  border-left: 5px solid #d35400;
-}
-
-.series-legendary-beast-tamer .audiobook-card {
-  border-left: 5px solid #27ae60;
-}
-
-.series-gods-eye .audiobook-card {
-  border-left: 5px solid #c0392b;
-}
-
-.series-bonus-fusion .audiobook-card {
-  border-left: 5px solid #8e44ad;
-}
-#fireflies {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-body {
-    background: radial-gradient(circle at center, #1a1f2b, #050507);
-}
-
-.audiobook-container,
+/* 🌟 Title glow */
 h1 {
-    position: relative;
-    z-index: 2;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255,255,255,0.6);
 }
