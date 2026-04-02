@@ -1,3 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ancient Library</title>
+
+<style>
+
 /* 🌌 GLOBAL RESET */
 * {
   margin: 0;
@@ -6,74 +14,58 @@
   font-family: system-ui, sans-serif;
 }
 
-/* 🌌 COSMIC BACKGROUND */
+/* 🌑 DARK VOID BACKGROUND (REPLACED COSMIC) */
 body {
   color: white;
   overflow-x: hidden;
 
   background:
-    radial-gradient(circle at 20% 30%, #1a1f4b, transparent),
-    radial-gradient(circle at 80% 70%, #4b1a3a, transparent),
-    radial-gradient(circle at center, #050510, #000000);
-
-  background-size: 200% 200%;
-  animation: backgroundShift 15s ease infinite;
+    radial-gradient(circle at center, #0a0a0f 0%, #020203 100%);
 }
 
-/* 🌠 BACKGROUND SHIFT */
-@keyframes backgroundShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* ✨ MAGIC ROTATING GLOW */
+/* 📜 ANCIENT SCRIPTURE TEXTURE */
 body::before {
   content: "";
   position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  inset: 0;
 
-  background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
-  animation: rotateMagic 40s linear infinite;
+  background-image: url("https://i.imgur.com/8IuucQZ.png");
+  background-size: cover;
+  background-position: center;
 
-  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+
+  animation: scriptureMove 80s linear infinite;
   z-index: 0;
 }
 
-@keyframes rotateMagic {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* 🌌 HOLOGRAPHIC LIGHT SWEEP */
+/* 🕯️ MOVING CANDLELIGHT */
 body::after {
   content: "";
   position: fixed;
-  width: 200%;
-  height: 200%;
-  top: -50%;
-  left: -50%;
+  inset: 0;
 
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(120,180,255,0.08),
-    transparent,
-    rgba(200,120,255,0.08),
-    transparent
-  );
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,170,90,0.18), transparent 30%),
+    radial-gradient(circle at 70% 60%, rgba(255,140,60,0.15), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(255,200,120,0.12), transparent 35%);
 
-  animation: holoSweep 12s linear infinite;
+  filter: blur(60px);
+  animation: candleMove 25s infinite linear alternate;
 
-  pointer-events: none;
+  z-index: 0;
 }
 
-@keyframes holoSweep {
-  0% { transform: rotate(0deg) translateX(-20%); }
-  100% { transform: rotate(360deg) translateX(20%); }
+@keyframes candleMove {
+  0% { transform: translate(0,0); opacity: 0.7; }
+  50% { transform: translate(-120px, 60px); opacity: 1; }
+  100% { transform: translate(100px, -80px); opacity: 0.8; }
+}
+
+@keyframes scriptureMove {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
 }
 
 /* 🎬 HEADER */
@@ -81,43 +73,43 @@ header {
   text-align: center;
   padding: 25px;
   font-size: 30px;
-  font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
 
-  color: #dbe9ff;
+  color: #f5e6c8;
 
   text-shadow:
-    0 0 10px rgba(120,180,255,0.7),
-    0 0 25px rgba(120,180,255,0.4);
+    0 0 10px rgba(255,180,80,0.6),
+    0 0 25px rgba(255,140,60,0.3);
 }
 
-/* 🧿 GLASS PANEL */
+/* 🧿 PANEL */
 .panel {
+  position: relative;
+  z-index: 2;
+
   margin: 20px;
   padding: 20px;
   border-radius: 20px;
 
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(15px);
+  background: rgba(20,15,10,0.6);
+  backdrop-filter: blur(10px);
 
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,200,120,0.2);
 
   box-shadow:
-    0 0 20px rgba(100,150,255,0.2),
-    inset 0 0 20px rgba(255,255,255,0.05);
+    0 0 30px rgba(255,140,60,0.15),
+    inset 0 0 20px rgba(255,180,80,0.05);
 }
 
-/* 🔮 BOOK BUTTONS */
+/* 📚 BOOK BUTTONS (UPGRADED) */
 .book-btn {
   width: 85%;
   margin: 15px auto;
   padding: 18px;
-  border-radius: 30px;
+  border-radius: 25px;
 
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.2);
-
-  backdrop-filter: blur(10px);
+  background: rgba(40,30,20,0.6);
+  border: 1px solid rgba(255,200,120,0.2);
 
   text-align: center;
   font-size: 16px;
@@ -125,34 +117,18 @@ header {
   transition: all 0.3s ease;
 
   box-shadow:
-    0 0 10px rgba(120,150,255,0.2);
+    0 0 10px rgba(255,140,60,0.2);
 }
 
-/* ✨ HOVER POWER */
+/* 🔥 HOVER LIKE ANCIENT RELIC */
 .book-btn:hover {
-  transform: scale(1.06);
+  transform: scale(1.07);
 
   box-shadow:
-    0 0 25px rgba(120,180,255,0.7),
-    0 0 50px rgba(200,120,255,0.5);
+    0 0 25px rgba(255,170,90,0.8),
+    0 0 50px rgba(255,120,50,0.4);
 
-  border: 1px solid rgba(255,255,255,0.4);
-}
-
-/* 🧬 HOLOGRAM TEXT */
-.hologram {
-  background: linear-gradient(90deg, #6df, #c8f, #6df);
-  background-size: 200%;
-
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-
-  animation: holoFlow 5s linear infinite;
-}
-
-@keyframes holoFlow {
-  0% { background-position: 0% }
-  100% { background-position: 200% }
+  border: 1px solid rgba(255,220,150,0.6);
 }
 
 /* 📜 STORY BOX */
@@ -161,17 +137,16 @@ header {
   padding: 20px;
   border-radius: 15px;
 
-  background: rgba(0,0,0,0.5);
-
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(10,8,5,0.8);
+  border: 1px solid rgba(255,200,120,0.2);
 
   line-height: 1.6;
 
   box-shadow:
-    inset 0 0 15px rgba(100,150,255,0.3);
+    inset 0 0 25px rgba(255,140,60,0.2);
 }
 
-/* 🔥 FIRELIGHT AMBIENCE */
+/* 🔥 FIRELIGHT FLOOR GLOW */
 .fire-glow {
   position: fixed;
   bottom: 0;
@@ -180,39 +155,82 @@ header {
 
   background: radial-gradient(
     circle at center,
-    rgba(255,140,50,0.25),
+    rgba(255,120,40,0.3),
     transparent
   );
 
   pointer-events: none;
 }
 
-/* 🌟 FLOATING RUNES */
+/* ✨ FLOATING RUNES */
 .rune {
   position: fixed;
   font-size: 22px;
   opacity: 0.12;
 
+  color: #ffc46b;
+
   animation: floatRune 25s linear infinite;
 }
 
 @keyframes floatRune {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-  }
-  100% {
-    transform: translateY(-10vh) rotate(360deg);
-  }
+  0% { transform: translateY(100vh) rotate(0deg); }
+  100% { transform: translateY(-10vh) rotate(360deg); }
 }
 
-/* 🧿 FIREflies CANVAS */
-#fireflies {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+/* 📖 GLOWING SCRIPT TEXT */
+.scripture-layer {
+  position: absolute;
+  top: 30%;
+  left: 10%;
 
-  filter: blur(1px);
+  font-size: 22px;
+  letter-spacing: 6px;
+
+  color: rgba(255, 200, 120, 0.15);
+
+  text-shadow:
+    0 0 10px rgba(255,170,80,0.4),
+    0 0 25px rgba(255,140,60,0.2);
+
+  animation: glowPulse 5s ease-in-out infinite alternate;
 }
+
+@keyframes glowPulse {
+  from { opacity: 0.1; }
+  to { opacity: 0.3; }
+}
+
+</style>
+</head>
+
+<body>
+
+<header>📜 THE ANCIENT LIBRARY</header>
+
+<div class="panel">
+
+  <div class="scripture-layer">
+    ✶ Lux Veritas ✶ אֵשׁ ✶ 𓂀 ✶
+  </div>
+
+  <div class="book-btn">📖 Book of Origins</div>
+  <div class="book-btn">📕 Forbidden Knowledge</div>
+  <div class="book-btn">📜 Scroll of Time</div>
+
+</div>
+
+<div id="storyBox">
+  Select a book to awaken its story...
+</div>
+
+<div class="fire-glow"></div>
+
+<!-- FLOATING RUNES -->
+<div class="rune" style="left:10%; animation-delay:0s;">𓂀</div>
+<div class="rune" style="left:30%; animation-delay:5s;">✶</div>
+<div class="rune" style="left:70%; animation-delay:10s;">א</div>
+<div class="rune" style="left:85%; animation-delay:15s;">☉</div>
+
+</body>
+</html>
