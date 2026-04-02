@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>🌌 System Awakening</title>
+<title>🌌 Xavier-OS Awakening</title>
 
-<!-- 📲 PWA SUPPORT -->
+<!-- 📲 PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
 
@@ -44,7 +44,15 @@ body::before{
     transparent 300px);
 }
 
-/* 📖 3D BOOK */
+/* 📖 BOOK GRID */
+#rows{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  padding-bottom:100px;
+}
+
+/* 📖 BOOK */
 .book{
   width:160px;
   height:200px;
@@ -75,6 +83,9 @@ body::before{
   display:flex;
   align-items:center;
   justify-content:center;
+  text-align:center;
+  padding:10px;
+  font-size:14px;
   backface-visibility:hidden;
 }
 
@@ -115,9 +126,16 @@ body::before{
   100%{transform:translateY(-10vh)}
 }
 
+/* 🧠 UI */
 h1{text-align:center;margin:20px}
 
-#rows{display:flex;flex-wrap:wrap;justify-content:center}
+#stats{
+  text-align:center;
+  margin-bottom:10px;
+  font-size:14px;
+  color:#ffd27a;
+  text-shadow:0 0 10px orange;
+}
 
 button{
   padding:10px;
@@ -129,15 +147,23 @@ button{
 
 <body>
 
+<!-- 🔥 GLOW -->
 <div class="scripture-glow"></div>
 
-<h1>📜 System Awakening</h1>
+<h1>📜 Xavier-OS</h1>
 
-<button onclick="addXP(25)">⚡ XP</button>
-<button onclick="unlockReward()">🎁 Pack</button>
+<!-- 📊 PLAYER STATS -->
+<div id="stats"></div>
 
+<!-- 🎮 CONTROLS -->
+<div style="text-align:center;">
+  <button onclick="addXP()">⚡ Gain XP</button>
+</div>
+
+<!-- 📚 BOOK WORLD -->
 <div id="rows"></div>
 
+<!-- 🧿 ATMOSPHERE -->
 <div class="rune" style="left:20%">𓂀</div>
 <div class="rune" style="left:60%">✶</div>
 
@@ -150,77 +176,12 @@ button{
   <source src="https://cdn.pixabay.com/audio/2022/03/10/audio_2b7c.mp3">
 </audio>
 
+<!-- 🧠 YOUR FULL SYSTEM SCRIPT -->
 <script>
 
-/* 📲 ENABLE APP MODE */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
-
-/* 🔊 SOUND */
-const ambient = document.getElementById("ambient");
-const whisper = document.getElementById("whisper");
-
-document.body.addEventListener("click",()=>{
-  ambient.play();
-});
-
-/* 💡 LIGHT */
-const glow=document.querySelector(".scripture-glow");
-
-document.addEventListener("mousemove",e=>{
-  glow.style.setProperty("--x",e.clientX+"px");
-  glow.style.setProperty("--y",e.clientY+"px");
-});
-
-/* ✨ PARTICLES */
-function spawnParticles(el){
-  const c=el.querySelector(".particles");
-  setInterval(()=>{
-    const p=document.createElement("div");
-    p.className="particle";
-    p.style.left=Math.random()*100+"%";
-    c.appendChild(p);
-    setTimeout(()=>p.remove(),3000);
-  },200);
-}
-
-/* 📖 CREATE BOOK */
-function createBook(name){
-  const b=document.createElement("div");
-  b.className="book";
-
-  b.innerHTML=`
-    <div class="book-inner">
-      <div class="page">${name}</div>
-      <div class="page back">📖</div>
-    </div>
-    <div class="particles"></div>
-  `;
-
-  b.onclick=()=>{
-    b.classList.toggle("open");
-    whisper.play();
-  };
-
-  spawnParticles(b);
-  return b;
-}
-
-/* 🎮 GAME */
-let xp=0;
-
-function addXP(v){
-  xp+=v;
-}
-
-function unlockReward(){
-  const names=["Vampire","Dragonic","Demonic"];
-  const r=names[Math.floor(Math.random()*names.length)];
-
-  const book=createBook(r);
-  document.getElementById("rows").appendChild(book);
-}
+///////////////////////////////
+// 🔥 PASTE THE JS I GAVE YOU HERE
+///////////////////////////////
 
 </script>
 
