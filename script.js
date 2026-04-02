@@ -1,5 +1,5 @@
 /* =========================
-   📲 APP MODE (PWA)
+   📲 PWA
 ========================= */
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
@@ -12,7 +12,7 @@ const ambient = document.getElementById("ambient");
 const whisper = document.getElementById("whisper");
 
 document.body.addEventListener("click", () => {
-  if (ambient) ambient.play().catch(()=>{});
+  ambient?.play().catch(()=>{});
 });
 
 /* =========================
@@ -21,9 +21,8 @@ document.body.addEventListener("click", () => {
 const glow = document.querySelector(".scripture-glow");
 
 document.addEventListener("mousemove", e => {
-  if (!glow) return;
-  glow.style.setProperty("--x", e.clientX + "px");
-  glow.style.setProperty("--y", e.clientY + "px");
+  glow?.style.setProperty("--x", e.clientX + "px");
+  glow?.style.setProperty("--y", e.clientY + "px");
 });
 
 /* =========================
@@ -70,55 +69,170 @@ function load(){
 }
 
 /* =========================
-   🧠 AI STORY SYSTEM
+   🌐 AI KEYS (USER INPUT)
+========================= */
+const AI_KEYS = {
+  GEMINI: "",
+  GROQ: "",
+  OPENROUTER: "",
+  HUGGINGFACE: ""
+};
+
+/* =========================
+   🧠 AI ROUTER
 ========================= */
 const storyCache = {};
-const styles = ["dark","epic","mystery","romance","brutal"];
 
-function generateStory(title){
+async function generateStory(title){
 
   if(storyCache[title]) return storyCache[title];
 
-  const style = styles[Math.random()*styles.length|0];
-  const pages = [];
+  let text = null;
 
-  for(let i=1;i<=10;i++){
+  if(AI_KEYS.GEMINI) text = await tryAI(geminiAI, title);
+  if(!text && AI_KEYS.GROQ) text = await tryAI(groqAI, title);
+  if(!text && AI_KEYS.OPENROUTER) text = await tryAI(openRouterAI, title);
+  if(!text && AI_KEYS.HUGGINGFACE) text = await tryAI(huggingFaceAI, title);
 
-    let text = "";
+  if(!text) return fallbackStory(title);
 
-    if(style==="dark") text = `Darkness consumed everything. ${title} awakened within you. Power demanded sacrifice.`;
-    if(style==="epic") text = `The heavens trembled. ${title} marked your rise. Legends would be rewritten.`;
-    if(style==="mystery") text = `Nothing made sense. ${title} appeared suddenly. Truth hid behind shadows.`;
-    if(style==="romance") text = `Two souls collided. ${title} became more than power—it became destiny.`;
-    if(style==="brutal") text = `Blood hit the ground. ${title} was survival. Only the ruthless endured.`;
-
-    pages.push(`
-      <h3>${title} — Chapter ${i}</h3>
-      <p>${text}</p>
-    `);
-  }
+  const pages = text.match(/.{1,400}/g)?.map((t,i)=>`
+    <h3>${title} — Chapter ${i+1}</h3>
+    <p>${t}</p>
+  `);
 
   storyCache[title] = pages;
   return pages;
+}
+
+async function tryAI(fn, title){
+  try{
+    return await fn(title);
+  }catch{
+    return null;
+  }
+}
+
+/* =========================
+   🟢 GEMINI
+========================= */
+async function geminiAI(title){
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${AI_KEYS.GEMINI}`,
+    {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({
+        contents:[{
+          parts:[{
+            text:`Write a cinematic, immersive dark fantasy story titled "${title}". Deep world-building, emotional, powerful.`
+          }]
+        }]
+      })
+    }
+  );
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text;
+}
+
+/* =========================
+   🟣 GROQ
+========================= */
+async function groqAI(title){
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":`Bearer ${AI_KEYS.GROQ}`
+    },
+    body:JSON.stringify({
+      model:"llama3-8b-8192",
+      messages:[{
+        role:"user",
+        content:`Dark cinematic fantasy story: "${title}".`
+      }]
+    })
+  });
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+/* =========================
+   🔵 OPENROUTER (MISTRAL)
+========================= */
+async function openRouterAI(title){
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":`Bearer ${AI_KEYS.OPENROUTER}`
+    },
+    body:JSON.stringify({
+      model:"mistralai/mistral-7b-instruct",
+      messages:[{
+        role:"user",
+        content:`Write an epic fantasy story titled "${title}" with strong immersion.`
+      }]
+    })
+  });
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+/* =========================
+   🟡 HUGGING FACE
+========================= */
+async function huggingFaceAI(title){
+
+  const res = await fetch(
+    "https://api-inference.huggingface.co/models/gpt2",
+    {
+      method:"POST",
+      headers:{
+        "Authorization":`Bearer ${AI_KEYS.HUGGINGFACE}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        inputs:`Dark fantasy story: ${title}`,
+        parameters:{ max_new_tokens:200 }
+      })
+    }
+  );
+
+  const data = await res.json();
+  return data[0]?.generated_text;
+}
+
+/* =========================
+   🧩 FALLBACK
+========================= */
+function fallbackStory(title){
+  return Array.from({length:10},(_,i)=>`
+    <h3>${title} — Chapter ${i+1}</h3>
+    <p>Power awakens within ${title}. Destiny begins in darkness...</p>
+  `);
 }
 
 /* =========================
    🔊 AUDIOBOOK
 ========================= */
 function speak(text){
-
   if(!('speechSynthesis' in window)) return;
 
-  window.speechSynthesis.cancel();
+  speechSynthesis.cancel();
 
   const msg = new SpeechSynthesisUtterance(
     text.replace(/<[^>]*>/g, '')
   );
 
   msg.rate = 0.9;
-  msg.pitch = 1;
-
-  window.speechSynthesis.speak(msg);
+  speechSynthesis.speak(msg);
 }
 
 /* =========================
@@ -127,12 +241,12 @@ function speak(text){
 let currentPage = 0;
 let currentPages = [];
 
-function openReader(title){
+async function openReader(title){
 
   currentBook = title;
-  currentPages = generateStory(title);
+  currentPages = await generateStory(title);
 
-  currentPage = parseInt(localStorage.getItem("page_"+title)) || 0;
+  currentPage = +localStorage.getItem("page_"+title) || 0;
 
   document.getElementById("reader").style.display = "flex";
 
@@ -151,14 +265,12 @@ function nextPage(){
     localStorage.setItem("page_"+currentBook, currentPage);
     addXP();
     renderPage();
-    save();
   }
 }
 
 function prevPage(){
   if(currentPage > 0){
     currentPage--;
-    localStorage.setItem("page_"+currentBook, currentPage);
     renderPage();
   }
 }
@@ -172,34 +284,23 @@ function closeReader(){
 ========================= */
 function getRarity(){
   const r = Math.random();
-  if(r < 0.6) return "common";
-  if(r < 0.85) return "rare";
-  if(r < 0.95) return "epic";
-  if(r < 0.99) return "legendary";
+  if(r<0.6) return "common";
+  if(r<0.85) return "rare";
+  if(r<0.95) return "epic";
+  if(r<0.99) return "legendary";
   return "mythic";
 }
 
-function applyRarityStyle(el, rarity){
-
-  if(rarity==="rare") el.style.boxShadow="0 0 15px cyan";
-  if(rarity==="epic") el.style.boxShadow="0 0 20px purple";
-  if(rarity==="legendary") el.style.boxShadow="0 0 25px gold,0 0 50px orange";
-  if(rarity==="mythic"){
-    el.style.boxShadow="0 0 30px red,0 0 60px gold";
-    el.style.transform="scale(1.05)";
-  }
-}
-
 /* =========================
-   ✨ PARTICLES (ONLY WHEN ACTIVE)
+   ✨ PARTICLES
 ========================= */
 function spawnParticles(el){
-  const c = el.querySelector(".particles");
 
+  const c = el.querySelector(".particles");
   if(!c) return;
 
   const interval = setInterval(()=>{
-    if(!el.classList.contains("active")) {
+    if(!el.classList.contains("active")){
       clearInterval(interval);
       return;
     }
@@ -210,20 +311,19 @@ function spawnParticles(el){
     c.appendChild(p);
 
     setTimeout(()=>p.remove(),3000);
-  },200);
+  },150);
 }
 
 /* =========================
-   📖 CREATE BOOK (DEAD MODE)
+   📖 CREATE BOOK
 ========================= */
 function createBook(name){
 
   const b = document.createElement("div");
   b.className = "book dead";
 
-  const rarity = getRarity();
-  b.dataset.rarity = rarity;
   b.dataset.name = name;
+  b.dataset.rarity = getRarity();
 
   b.innerHTML = `
     <div class="placeholder"></div>
@@ -236,25 +336,20 @@ function createBook(name){
 }
 
 /* =========================
-   ⚡ ACTIVATE BOOK
+   ⚡ ACTIVATE
 ========================= */
 function activateBook(b){
 
   if(b.classList.contains("active")) return;
 
   const name = b.dataset.name;
-  const rarity = b.dataset.rarity;
 
   b.classList.remove("dead");
   b.classList.add("active");
 
-  applyRarityStyle(b, rarity);
-
   b.innerHTML = `
     <div class="book-inner">
-      <div class="page">
-        ${name}<br><small>${rarity.toUpperCase()}</small>
-      </div>
+      <div class="page">${name}</div>
       <div class="page back">📖</div>
     </div>
     <div class="particles"></div>
@@ -262,51 +357,16 @@ function activateBook(b){
 
   spawnParticles(b);
 
-  if(whisper) whisper.play().catch(()=>{});
+  whisper?.play().catch(()=>{});
 
   setTimeout(()=>{
     b.classList.toggle("open");
     openReader(name);
-  }, 150);
+  },150);
 }
 
 /* =========================
-   ⚡ XP
-========================= */
-function addXP(){
-
-  if(!currentBook) return;
-
-  player.xp += 10;
-
-  if(player.xp >= player.level * 100){
-    player.xp = 0;
-    player.level++;
-    spawnNewBook();
-  }
-
-  save();
-  renderStats();
-}
-
-/* =========================
-   📚 SPAWN
-========================= */
-function spawnNewBook(){
-
-  let name;
-
-  if(Math.random()<0.3){
-    name = coreBooks[Math.random()*coreBooks.length|0];
-  } else {
-    name = generateBookName();
-  }
-
-  document.getElementById("rows").appendChild(createBook(name));
-}
-
-/* =========================
-   🚀 INIT
+   📚 LIBRARY
 ========================= */
 function initLibrary(){
 
@@ -322,16 +382,6 @@ function initLibrary(){
 }
 
 /* =========================
-   🔄 LOOP
-========================= */
-setInterval(()=>{
-  if(currentBook){
-    addXP();
-    if(Math.random()<0.3) spawnNewBook();
-  }
-},3000);
-
-/* =========================
    📊 UI
 ========================= */
 function renderStats(){
@@ -341,13 +391,11 @@ function renderStats(){
   if(!el){
     el = document.createElement("div");
     el.id="stats";
-    document.body.insertBefore(el, document.getElementById("rows"));
+    document.body.prepend(el);
   }
 
   el.innerHTML = `
-    🔥 Level: ${player.level} |
-    ⚡ XP: ${player.xp} |
-    📖 Reading: ${currentBook || "None"}
+    🔥 Level ${player.level} | ⚡ ${player.xp} XP | 📖 ${currentBook || "Idle"}
   `;
 }
 
