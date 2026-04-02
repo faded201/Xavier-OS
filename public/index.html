@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Xavier OS</title>
+<title>Xavier Cinematic OS</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -11,13 +11,15 @@
 
 <canvas id="fireflies"></canvas>
 
-<h1>🎧 Xavier OS</h1>
+<h1>🎬 Xavier Cinematic OS</h1>
 
-<input id="search" placeholder="Search books...">
+<!-- 🎬 Scene -->
+<img id="sceneImage">
 
-<img id="sceneImage" src="">
+<!-- 💬 Subtitles -->
+<div id="subtitles"></div>
 
-<div id="continueRow" class="row"></div>
+<!-- 📚 Books -->
 <div id="rows"></div>
 
 <audio id="audio"></audio>
@@ -25,145 +27,102 @@
 
 <script>
 
-/* 📚 BOOK SYSTEM (same as before) */
-const books = {};
-
-/* 🔥 YOUR MAIN BOOKS */
-const mainBooks = [
-  "My Vampire System",
-  "My Dragonic System",
-  "Birth of a Demonic Sword",
-  "Legendary Beast Tamer",
-  "The Dragon Inside Me",
-  "Gods Eye",
-  "Vikings: Valhalla Into the After"
-];
-
-mainBooks.forEach((title, i) => {
-  books["main" + i] = {
-    title,
+/* 📚 STORY ENGINE */
+const books = {
+  vampire: {
+    title: "My Vampire System",
     genre: "Main",
-    audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     scenes: [
-      `https://picsum.photos/800/400?random=${i}`,
-      `https://picsum.photos/800/400?random=${i+100}`
+      {
+        text: "The night was silent... until Quinn felt the hunger awaken.",
+        img: "https://picsum.photos/800/400?random=1"
+      },
+      {
+        text: "A system appeared before his eyes... power beyond imagination.",
+        img: "https://picsum.photos/800/400?random=2"
+      },
+      {
+        text: "This was only the beginning.",
+        img: "https://picsum.photos/800/400?random=3"
+      }
     ]
-  };
-});
-
-/* 🎭 GENRES */
-const genres = ["Fantasy","Sci-Fi","Horror","Romance","Action"];
-
-/* ➕ GENERATE */
-let count = Object.keys(books).length;
-
-while (Object.keys(books).length < 137) {
-  let genre = genres[count % genres.length];
-
-  books["b" + count] = {
-    title: genre + " Book " + count,
-    genre,
-    audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    scenes: [`https://picsum.photos/800/400?random=${count}`]
-  };
-
-  count++;
-}
-
-/* 🎴 BUILD UI */
-const rowsDiv = document.getElementById("rows");
-
-function buildUI(filter="") {
-  rowsDiv.innerHTML = "";
-
-  let grouped = {};
-
-  Object.entries(books).forEach(([key, b]) => {
-    if (!b.title.toLowerCase().includes(filter.toLowerCase())) return;
-
-    if (!grouped[b.genre]) grouped[b.genre] = [];
-    grouped[b.genre].push({key, ...b});
-  });
-
-  Object.keys(grouped).forEach(genre => {
-    const row = document.createElement("div");
-    row.className = "row";
-
-    const title = document.createElement("h2");
-    title.innerText = genre;
-
-    const scroll = document.createElement("div");
-    scroll.className = "scroll";
-
-    grouped[genre].forEach(book => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerText = book.title;
-
-      card.onclick = (e)=>startBook(e, book.key);
-
-      scroll.appendChild(card);
-    });
-
-    row.appendChild(title);
-    row.appendChild(scroll);
-    rowsDiv.appendChild(row);
-  });
-}
-
-buildUI();
-
-/* 🔍 SEARCH */
-document.getElementById("search").oninput = (e)=>{
-  buildUI(e.target.value);
-};
-
-/* 🎧 PLAYER */
-const audio = document.getElementById("audio");
-const img = document.getElementById("sceneImage");
-
-let currentKey = null;
-
-function startBook(e,key){
-
-  currentKey = key;
-
-  audio.src = books[key].audio;
-
-  let t = localStorage.getItem(key);
-  if(t) audio.currentTime = t;
-
-  audio.play();
-
-  img.src = books[key].scenes[0];
-
-  saveContinue(key);
-}
-
-/* 💾 SAVE */
-audio.ontimeupdate = ()=>{
-  if(currentKey){
-    localStorage.setItem(currentKey,audio.currentTime);
   }
 };
 
-/* 🧠 CONTINUE ROW */
-function saveContinue(key){
-  let row = document.getElementById("continueRow");
-  row.innerHTML = "<h2>Continue Listening</h2>";
+/* 🎴 UI */
+const rows = document.getElementById("rows");
 
-  Object.keys(localStorage).forEach(k=>{
-    if(books[k]){
-      let c = document.createElement("div");
-      c.className="card";
-      c.innerText = books[k].title;
-      c.onclick=()=>startBook(event,k);
-      row.appendChild(c);
-    }
-  });
+Object.keys(books).forEach(key=>{
+  const card = document.createElement("div");
+  card.className="card";
+  card.innerText = books[key].title;
+  card.onclick = ()=>playStory(key);
+  rows.appendChild(card);
+});
+
+/* 🎤 VOICE SYSTEM */
+const synth = window.speechSynthesis;
+
+/* 🎬 PLAY STORY */
+const img = document.getElementById("sceneImage");
+const sub = document.getElementById("subtitles");
+
+function playStory(key){
+
+  const story = books[key].scenes;
+  let i = 0;
+
+  function nextScene(){
+
+    if(i >= story.length) return;
+
+    let scene = story[i];
+
+    img.src = scene.img;
+    sub.innerText = scene.text;
+
+    let utter = new SpeechSynthesisUtterance(scene.text);
+
+    /* 🎭 OPTIONAL: different voices */
+    let voices = synth.getVoices();
+    if(voices.length) utter.voice = voices[i % voices.length];
+
+    utter.onend = ()=>{
+      i++;
+      setTimeout(nextScene, 1000);
+    };
+
+    synth.speak(utter);
+  }
+
+  nextScene();
 }
 
-saveContinue();
+/* 🔥 Fireflies */
+const canvas = document.getElementById("fireflies");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let p = Array.from({length:60},()=>({
+  x:Math.random()*canvas.width,
+  y:Math.random()*canvas.height
+}));
+
+function anim(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  p.forEach(pt=>{
+    pt.x += Math.random()-0.5;
+    pt.y += Math.random()-0.5;
+    ctx.beginPath();
+    ctx.arc(pt.x,pt.y,2,0,Math.PI*2);
+    ctx.fillStyle="white";
+    ctx.fill();
+  });
+  requestAnimationFrame(anim);
+}
+anim();
 
 </script>
 
