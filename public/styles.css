@@ -1,11 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Ancient Library</title>
-
-<style>
-
 /* 🌌 GLOBAL RESET */
 * {
   margin: 0;
@@ -14,7 +6,7 @@
   font-family: system-ui, sans-serif;
 }
 
-/* 🌑 DARK VOID BACKGROUND (REPLACED COSMIC) */
+/* 🌑 DARK VOID BACKGROUND */
 body {
   color: white;
   overflow-x: hidden;
@@ -23,7 +15,7 @@ body {
     radial-gradient(circle at center, #0a0a0f 0%, #020203 100%);
 }
 
-/* 📜 ANCIENT SCRIPTURE TEXTURE */
+/* 📜 ANCIENT TEXTURE */
 body::before {
   content: "";
   position: fixed;
@@ -40,7 +32,7 @@ body::before {
   z-index: 0;
 }
 
-/* 🕯️ MOVING CANDLELIGHT */
+/* 🕯️ CANDLELIGHT */
 body::after {
   content: "";
   position: fixed;
@@ -57,6 +49,7 @@ body::after {
   z-index: 0;
 }
 
+/* 🔥 ANIMATIONS */
 @keyframes candleMove {
   0% { transform: translate(0,0); opacity: 0.7; }
   50% { transform: translate(-120px, 60px); opacity: 1; }
@@ -101,8 +94,9 @@ header {
     inset 0 0 20px rgba(255,180,80,0.05);
 }
 
-/* 📚 BOOK BUTTONS (UPGRADED) */
+/* 📚 BOOK BUTTON */
 .book-btn {
+  position: relative;
   width: 85%;
   margin: 15px auto;
   padding: 18px;
@@ -120,7 +114,14 @@ header {
     0 0 10px rgba(255,140,60,0.2);
 }
 
-/* 🔥 HOVER LIKE ANCIENT RELIC */
+/* 🔥 ACTIVE BOOK (OPEN) */
+.book-btn.open {
+  box-shadow:
+    0 0 25px rgba(255,170,90,0.8),
+    0 0 60px rgba(255,120,50,0.4);
+}
+
+/* ✨ HOVER */
 .book-btn:hover {
   transform: scale(1.07);
 
@@ -146,7 +147,7 @@ header {
     inset 0 0 25px rgba(255,140,60,0.2);
 }
 
-/* 🔥 FIRELIGHT FLOOR GLOW */
+/* 🔥 FIRE GLOW */
 .fire-glow {
   position: fixed;
   bottom: 0;
@@ -167,7 +168,6 @@ header {
   position: fixed;
   font-size: 22px;
   opacity: 0.12;
-
   color: #ffc46b;
 
   animation: floatRune 25s linear infinite;
@@ -178,7 +178,7 @@ header {
   100% { transform: translateY(-10vh) rotate(360deg); }
 }
 
-/* 📖 GLOWING SCRIPT TEXT */
+/* 📖 GLOWING SCRIPTURE */
 .scripture-layer {
   position: absolute;
   top: 30%;
@@ -201,36 +201,44 @@ header {
   to { opacity: 0.3; }
 }
 
-</style>
-</head>
+/* ✨ PARTICLE SYSTEM */
+.particles {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
 
-<body>
+  width: 200px;
+  height: 200px;
 
-<header>📜 THE ANCIENT LIBRARY</header>
+  pointer-events: none;
+}
 
-<div class="panel">
+.particle {
+  position: absolute;
+  bottom: 0;
 
-  <div class="scripture-layer">
-    ✶ Lux Veritas ✶ אֵשׁ ✶ 𓂀 ✶
-  </div>
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 
-  <div class="book-btn">📖 Book of Origins</div>
-  <div class="book-btn">📕 Forbidden Knowledge</div>
-  <div class="book-btn">📜 Scroll of Time</div>
+  background: radial-gradient(circle, #ffd27a, #ff9a3c);
 
-</div>
+  opacity: 0;
 
-<div id="storyBox">
-  Select a book to awaken its story...
-</div>
+  animation: rise linear forwards;
+}
 
-<div class="fire-glow"></div>
-
-<!-- FLOATING RUNES -->
-<div class="rune" style="left:10%; animation-delay:0s;">𓂀</div>
-<div class="rune" style="left:30%; animation-delay:5s;">✶</div>
-<div class="rune" style="left:70%; animation-delay:10s;">א</div>
-<div class="rune" style="left:85%; animation-delay:15s;">☉</div>
-
-</body>
-</html>
+@keyframes rise {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-180px) translateX(var(--drift)) scale(1.2);
+    opacity: 0;
+  }
+}
