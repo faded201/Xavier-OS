@@ -1,95 +1,68 @@
 <script>
 
-/* 🎭 VOICE HELPER */
-function getVoice(type) {
-  const voices = speechSynthesis.getVoices();
+/* 🎧 AUDIO SYSTEM */
+const bgMusic = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7c1b9c3c6e.mp3");
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
 
-  if (!voices.length) return null;
-
-  if (type === "male") {
-    return voices.find(v => v.name.toLowerCase().includes("male")) || voices[0];
-  }
-
-  if (type === "female") {
-    return voices.find(v => v.name.toLowerCase().includes("female")) || voices[1];
-  }
-
-  return voices[0];
-}
-
-/* 📚 CINEMATIC BOOKS */
-const books = {
-
-  vampire: {
-    title: "My Vampire System",
-    scenes: [
-      { char: "narrator", voice: "male", text: "The night was silent... until Quinn felt the hunger awaken.", img: "https://picsum.photos/800/400?random=1" },
-      { char: "system", voice: "female", text: "System activated. Blood evolution unlocked.", img: "https://picsum.photos/800/400?random=2" },
-      { char: "quinn", voice: "male", text: "What... is happening to me?", img: "https://picsum.photos/800/400?random=3" }
-    ]
-  },
-
-  dragonic: {
-    title: "My Dragonic System",
-    scenes: [
-      { char: "narrator", voice: "male", text: "A dragon’s power slept within him.", img: "https://picsum.photos/800/400?random=4" },
-      { char: "system", voice: "female", text: "Dragon core activated.", img: "https://picsum.photos/800/400?random=5" },
-      { char: "hero", voice: "male", text: "I can feel the flames...", img: "https://picsum.photos/800/400?random=6" }
-    ]
-  },
-
-  demonic: {
-    title: "Birth of a Demonic Sword",
-    scenes: [
-      { char: "narrator", voice: "male", text: "The blade thirsted for souls.", img: "https://picsum.photos/800/400?random=7" },
-      { char: "sword", voice: "female", text: "Feed me... and I will grant power.", img: "https://picsum.photos/800/400?random=8" },
-      { char: "hero", voice: "male", text: "Then take them all.", img: "https://picsum.photos/800/400?random=9" }
-    ]
-  },
-
-  beast: {
-    title: "Legendary Beast Tamer",
-    scenes: [
-      { char: "narrator", voice: "male", text: "Creatures bowed before him.", img: "https://picsum.photos/800/400?random=10" },
-      { char: "beast", voice: "female", text: "Master... we obey.", img: "https://picsum.photos/800/400?random=11" }
-    ]
-  },
-
-  dragonInside: {
-    title: "The Dragon Inside Me",
-    scenes: [
-      { char: "narrator", voice: "male", text: "Something ancient lived inside.", img: "https://picsum.photos/800/400?random=12" },
-      { char: "dragon", voice: "male", text: "You are not human anymore.", img: "https://picsum.photos/800/400?random=13" }
-    ]
-  },
-
-  godsEye: {
-    title: "Gods Eye",
-    scenes: [
-      { char: "narrator", voice: "male", text: "He could see everything.", img: "https://picsum.photos/800/400?random=14" },
-      { char: "god", voice: "female", text: "You have been chosen.", img: "https://picsum.photos/800/400?random=15" }
-    ]
-  },
-
-  vikings: {
-    title: "Vikings: Valhalla Into the After",
-    scenes: [
-      { char: "narrator", voice: "male", text: "The warriors crossed into the afterlife.", img: "https://picsum.photos/800/400?random=16" },
-      { char: "warrior", voice: "male", text: "Valhalla awaits us!", img: "https://picsum.photos/800/400?random=17" }
-    ]
-  }
-
+const sfx = {
+  boom: new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_49c6d0a3c7.mp3"),
+  magic: new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_6e8b4c4a0e.mp3")
 };
 
-/* 🎴 BUILD UI */
+/* 🎤 VOICE */
+function getVoice(type) {
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  return type === "female"
+    ? voices.find(v => v.name.toLowerCase().includes("female")) || voices[1]
+    : voices.find(v => v.name.toLowerCase().includes("male")) || voices[0];
+}
+
+/* 🧠 AI STORY GENERATOR (LOCAL SIMULATION) */
+function generateScene(bookTitle) {
+
+  const events = [
+    "A shadow moved in the distance.",
+    "Power surged through his body.",
+    "A mysterious voice whispered.",
+    "The ground shattered beneath him.",
+    "A new enemy appeared.",
+    "Time itself slowed down."
+  ];
+
+  const chars = ["narrator","hero","system","enemy"];
+  const voices = ["male","female"];
+
+  return {
+    char: chars[Math.floor(Math.random()*chars.length)],
+    voice: voices[Math.floor(Math.random()*voices.length)],
+    text: `${bookTitle}: ${events[Math.floor(Math.random()*events.length)]}`,
+    img: `https://picsum.photos/800/400?random=${Math.random()*1000}`
+  };
+}
+
+/* 📚 BOOKS */
+const books = {
+  vampire: { title: "My Vampire System" },
+  dragonic: { title: "My Dragonic System" },
+  demonic: { title: "Birth of a Demonic Sword" },
+  beast: { title: "Legendary Beast Tamer" },
+  dragonInside: { title: "The Dragon Inside Me" },
+  godsEye: { title: "Gods Eye" },
+  vikings: { title: "Vikings: Valhalla Into the After" }
+};
+
+/* 🎴 UI */
 const rows = document.getElementById("rows");
 
-Object.keys(books).forEach(key => {
+Object.keys(books).forEach(key=>{
   const card = document.createElement("div");
-  card.className = "card";
+  card.className="card";
   card.innerText = books[key].title;
 
-  card.onclick = () => playBook(key);
+  card.onclick = ()=>startCinematic(key);
 
   rows.appendChild(card);
 });
@@ -98,28 +71,39 @@ Object.keys(books).forEach(key => {
 const img = document.getElementById("sceneImage");
 const sub = document.getElementById("subtitles");
 
-function playBook(key){
+function startCinematic(key){
 
   speechSynthesis.cancel();
+  bgMusic.play();
 
-  const scenes = books[key].scenes;
-  let i = 0;
+  let count = 0;
 
   function next(){
 
-    if(i >= scenes.length) return;
+    if(count > 20) return; // length of session
 
-    let s = scenes[i];
+    let scene = generateScene(books[key].title);
 
-    img.src = s.img;
-    sub.innerText = s.char.toUpperCase() + ": " + s.text;
+    img.src = scene.img;
+    sub.innerText = scene.char.toUpperCase() + ": " + scene.text;
 
-    let u = new SpeechSynthesisUtterance(s.text);
-    u.voice = getVoice(s.voice);
+    /* 🎧 RANDOM SOUND FX */
+    if(Math.random() > 0.7){
+      sfx.magic.currentTime = 0;
+      sfx.magic.play();
+    }
+
+    if(Math.random() > 0.85){
+      sfx.boom.currentTime = 0;
+      sfx.boom.play();
+    }
+
+    let u = new SpeechSynthesisUtterance(scene.text);
+    u.voice = getVoice(scene.voice);
 
     u.onend = ()=>{
-      i++;
-      setTimeout(next, 800);
+      count++;
+      setTimeout(next, 700);
     };
 
     speechSynthesis.speak(u);
