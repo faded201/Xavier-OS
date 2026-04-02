@@ -19,7 +19,7 @@
 
 <div class="audiobook-container">
 
-  <div class="audiobook-card" onclick="startBook('vampire')">
+  <div class="audiobook-card" onclick="startBook(event,'vampire')">
     My Vampire System
   </div>
 
@@ -36,8 +36,7 @@ const books = {
       "https://images.unsplash.com/photo-1503264116251-35a269479413",
       "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
       "https://images.unsplash.com/photo-1493244040629-496f6d136cc3"
-    ],
-    characters: ["Quinn", "Layla"]
+    ]
   }
 };
 
@@ -48,12 +47,18 @@ let currentBook = null;
 let sceneIndex = 0;
 
 /* ▶️ Start Book */
-function startBook(name) {
-  currentBook = books[name];
+function startBook(e, name) {
 
+  // 🔥 Highlight active card
+  document.querySelectorAll('.audiobook-card')
+    .forEach(card => card.classList.remove('playing'));
+
+  e.currentTarget.classList.add('playing');
+
+  currentBook = books[name];
   audio.src = currentBook.audio;
 
-  // 🔁 Resume progress
+  // 💾 Resume progress
   const savedTime = localStorage.getItem(name);
   if (savedTime) audio.currentTime = savedTime;
 
@@ -69,7 +74,7 @@ audio.addEventListener("timeupdate", () => {
   }
 });
 
-/* 🖼 Change scene every 10s */
+/* 🖼 Scene changer */
 function changeScene() {
   if (!currentBook) return;
 
