@@ -10,6 +10,7 @@
     <meta name="apple-mobile-web-app-title" content="Xavier OS">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
+    <!-- CSS -->
     <link rel="stylesheet" href="styles.css">
 
     <title>Xavier OS</title>
@@ -17,7 +18,7 @@
 
 <body>
 
-    <!-- 🔥 Fireflies background -->
+    <!-- 🔥 Fireflies Background -->
     <canvas id="fireflies"></canvas>
 
     <h1 style="text-align:center;">🎧 Xavier OS Audiobooks</h1>
@@ -27,27 +28,30 @@
         <div class="audiobook-card series-my-vampire-system">
             <div class="audiobook-title">My Vampire System</div>
             <div class="audiobook-series">Quinn Talen Universe</div>
-            <button class="audiobook-button">▶ Play</button>
+            <button class="audiobook-button" onclick="playBook('vampire')">▶ Play</button>
         </div>
 
         <div class="audiobook-card series-my-dragonic-system">
             <div class="audiobook-title">My Dragonic System</div>
             <div class="audiobook-series">Dragon Saga</div>
-            <button class="audiobook-button">▶ Play</button>
+            <button class="audiobook-button" onclick="playBook('dragon')">▶ Play</button>
         </div>
 
         <div class="audiobook-card series-shadow-blade">
             <div class="audiobook-title">Shadow Blade</div>
             <div class="audiobook-series">Dark Assassin Series</div>
-            <button class="audiobook-button">▶ Play</button>
+            <button class="audiobook-button" onclick="playBook('shadow')">▶ Play</button>
         </div>
 
     </div>
 
-    <!-- 🔥 Fireflies script -->
+    <!-- 🔥 INSANE FIRE + INTERACTION SCRIPT -->
     <script>
     const canvas = document.getElementById("fireflies");
     const ctx = canvas.getContext("2d");
+
+    let particles = [];
+    let audioBoost = 1;
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -56,41 +60,105 @@
     resize();
     window.addEventListener("resize", resize);
 
-    let particles = [];
+    class Firefly {
+        constructor(x = null, y = null) {
+            this.x = x ?? Math.random() * canvas.width;
+            this.y = y ?? Math.random() * canvas.height;
+            this.radius = Math.random() * 2 + 1;
+            this.speedX = (Math.random() - 0.5) * 0.7;
+            this.speedY = (Math.random() - 0.5) * 0.7;
+            this.opacity = Math.random();
+        }
 
-    for (let i = 0; i < 60; i++) {
-        particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 2 + 1,
-            speedX: Math.random() - 0.5,
-            speedY: Math.random() - 0.5
-        });
+        update() {
+            this.x += this.speedX * audioBoost;
+            this.y += this.speedY * audioBoost;
+
+            this.opacity += (Math.random() - 0.5) * 0.08;
+            this.opacity = Math.max(0.2, Math.min(this.opacity, 1));
+
+            if (this.x < 0) this.x = canvas.width;
+            if (this.x > canvas.width) this.x = 0;
+            if (this.y < 0) this.y = canvas.height;
+            if (this.y > canvas.height) this.y = 0;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * audioBoost, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 180, ${this.opacity})`;
+            ctx.shadowColor = "rgba(255,255,150,0.9)";
+            ctx.shadowBlur = 20 * audioBoost;
+            ctx.fill();
+        }
+    }
+
+    function connectParticles() {
+        for (let a = 0; a < particles.length; a++) {
+            for (let b = a; b < particles.length; b++) {
+                let dx = particles[a].x - particles[b].x;
+                let dy = particles[a].y - particles[b].y;
+                let dist = dx * dx + dy * dy;
+
+                if (dist < 8000) {
+                    ctx.strokeStyle = "rgba(255,255,200,0.08)";
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particles[a].x, particles[a].y);
+                    ctx.lineTo(particles[b].x, particles[b].y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    canvas.addEventListener("touchstart", (e) => {
+        for (let i = 0; i < 15; i++) {
+            particles.push(new Firefly(
+                e.touches[0].clientX,
+                e.touches[0].clientY
+            ));
+        }
+    });
+
+    canvas.addEventListener("click", (e) => {
+        for (let i = 0; i < 15; i++) {
+            particles.push(new Firefly(e.clientX, e.clientY));
+        }
+    });
+
+    function boostAudio() {
+        audioBoost = 2;
+        setTimeout(() => audioBoost = 1, 500);
+    }
+
+    const oldPlay = window.playBook;
+    window.playBook = function(type) {
+        boostAudio();
+        if (oldPlay) oldPlay(type);
+        else alert("Playing: " + type);
+    };
+
+    function init() {
+        particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Firefly());
+        }
     }
 
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         particles.forEach(p => {
-            p.x += p.speedX;
-            p.y += p.speedY;
-
-            if (p.x < 0) p.x = canvas.width;
-            if (p.x > canvas.width) p.x = 0;
-            if (p.y < 0) p.y = canvas.height;
-            if (p.y > canvas.height) p.y = 0;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,200,0.8)";
-            ctx.shadowColor = "rgba(255,255,150,0.8)";
-            ctx.shadowBlur = 10;
-            ctx.fill();
+            p.update();
+            p.draw();
         });
 
+        connectParticles();
         requestAnimationFrame(animate);
     }
 
+    init();
     animate();
     </script>
 
