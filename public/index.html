@@ -1,162 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- PWA + iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Xavier OS">
-    <link rel="apple-touch-icon" href="/icon-192.png">
+<title>Xavier OS</title>
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="styles.css">
-
-    <title>Xavier OS</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-    <!-- 🔥 Background Animation -->
-    <canvas id="fireflies"></canvas>
+<canvas id="fireflies"></canvas>
 
-    <h1 style="text-align:center;">🎧 Xavier OS Audiobooks</h1>
+<h1>🎧 Xavier OS Audiobooks</h1>
 
-    <div class="audiobook-container">
+<div class="audiobook-container">
 
-        <div class="audiobook-card series-my-vampire-system">
-            <div class="audiobook-title">My Vampire System</div>
-            <div class="audiobook-series">Quinn Talen Universe</div>
-            <button class="audiobook-button" onclick="playBook('vampire')">▶ Play</button>
-        </div>
-
-        <div class="audiobook-card series-my-dragonic-system">
-            <div class="audiobook-title">My Dragonic System</div>
-            <div class="audiobook-series">Dragon Saga</div>
-            <button class="audiobook-button" onclick="playBook('dragon')">▶ Play</button>
-        </div>
-
-        <div class="audiobook-card series-shadow-blade">
-            <div class="audiobook-title">Shadow Blade</div>
-            <div class="audiobook-series">Dark Assassin Series</div>
-            <button class="audiobook-button" onclick="playBook('shadow')">▶ Play</button>
-        </div>
-
+    <div class="audiobook-card" onclick="playBook('audio1.mp3')">
+        <div class="audiobook-title">My Vampire System</div>
+        <div class="audiobook-series">Tap to Play</div>
     </div>
 
-    <!-- 🔥 INSANE SCRIPT -->
-    <script>
-    const canvas = document.getElementById("fireflies");
-    const ctx = canvas.getContext("2d");
+    <div class="audiobook-card" onclick="playBook('audio2.mp3')">
+        <div class="audiobook-title">My Dragonic System</div>
+        <div class="audiobook-series">Tap to Play</div>
+    </div>
 
-    let particles = [];
-    let audioBoost = 1;
+</div>
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener("resize", resize);
+<!-- 🎧 Hidden Audio -->
+<audio id="audio"></audio>
 
-    class Firefly {
-        constructor(x = null, y = null) {
-            this.x = x ?? Math.random() * canvas.width;
-            this.y = y ?? Math.random() * canvas.height;
-            this.radius = Math.random() * 2 + 1;
-            this.speedX = (Math.random() - 0.5) * 0.7;
-            this.speedY = (Math.random() - 0.5) * 0.7;
-            this.opacity = Math.random();
-        }
+<!-- 📊 Visualizer -->
+<canvas id="visualizer"></canvas>
 
-        update() {
-            this.x += this.speedX * audioBoost;
-            this.y += this.speedY * audioBoost;
+<script>
+const audio = document.getElementById("audio");
+const visCanvas = document.getElementById("visualizer");
+const visCtx = visCanvas.getContext("2d");
 
-            this.opacity += (Math.random() - 0.5) * 0.08;
-            this.opacity = Math.max(0.2, Math.min(this.opacity, 1));
+let audioCtx, analyser, source, dataArray;
 
-            if (this.x < 0) this.x = canvas.width;
-            if (this.x > canvas.width) this.x = 0;
-            if (this.y < 0) this.y = canvas.height;
-            if (this.y > canvas.height) this.y = 0;
-        }
+function setupAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
 
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * audioBoost, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 180, ${this.opacity})`;
-            ctx.shadowColor = "rgba(255,255,150,0.9)";
-            ctx.shadowBlur = 20 * audioBoost;
-            ctx.fill();
-        }
-    }
+    source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
 
-    function connectParticles() {
-        for (let a = 0; a < particles.length; a++) {
-            for (let b = a; b < particles.length; b++) {
-                let dx = particles[a].x - particles[b].x;
-                let dy = particles[a].y - particles[b].y;
-                let dist = dx * dx + dy * dy;
+    analyser.fftSize = 128;
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+}
 
-                if (dist < 8000) {
-                    ctx.strokeStyle = "rgba(255,255,200,0.08)";
-                    ctx.beginPath();
-                    ctx.moveTo(particles[a].x, particles[a].y);
-                    ctx.lineTo(particles[b].x, particles[b].y);
-                    ctx.stroke();
-                }
-            }
-        }
+function playBook(file) {
+    if (!audioCtx) setupAudio();
+
+    audio.src = file;
+    audio.play();
+}
+
+/* 📊 Visualizer */
+function drawVisualizer() {
+    requestAnimationFrame(drawVisualizer);
+
+    if (!analyser) return;
+
+    analyser.getByteFrequencyData(dataArray);
+
+    visCanvas.width = window.innerWidth;
+    visCanvas.height = 100;
+
+    visCtx.clearRect(0, 0, visCanvas.width, visCanvas.height);
+
+    let barWidth = (visCanvas.width / dataArray.length);
+
+    for (let i = 0; i < dataArray.length; i++) {
+        let height = dataArray[i];
+
+        visCtx.fillStyle = "rgba(100,200,255,0.6)";
+        visCtx.fillRect(i * barWidth, visCanvas.height - height, barWidth - 2, height);
     }
 
-    canvas.addEventListener("click", (e) => {
-        for (let i = 0; i < 15; i++) {
-            particles.push(new Firefly(e.clientX, e.clientY));
-        }
+    audioBoost = 1 + (Math.max(...dataArray) / 255);
+}
+
+drawVisualizer();
+
+/* 🔥 Fireflies */
+const canvas = document.getElementById("fireflies");
+const ctx = canvas.getContext("2d");
+
+let particles = [];
+let audioBoost = 1;
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+class Firefly {
+    constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.speedY = (Math.random() - 0.5) * 0.5;
+    }
+
+    update() {
+        this.x += this.speedX * audioBoost;
+        this.y += this.speedY * audioBoost;
+
+        if (this.x < 0) this.x = canvas.width;
+        if (this.x > canvas.width) this.x = 0;
+        if (this.y < 0) this.y = canvas.height;
+        if (this.y > canvas.height) this.y = 0;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2 * audioBoost, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,200,0.8)";
+        ctx.shadowBlur = 20;
+        ctx.fill();
+    }
+}
+
+for (let i = 0; i < 80; i++) {
+    particles.push(new Firefly());
+}
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    particles.forEach(p => {
+        p.update();
+        p.draw();
     });
 
-    canvas.addEventListener("touchstart", (e) => {
-        for (let i = 0; i < 15; i++) {
-            particles.push(new Firefly(
-                e.touches[0].clientX,
-                e.touches[0].clientY
-            ));
-        }
-    });
+    requestAnimationFrame(animate);
+}
 
-    function boostAudio() {
-        audioBoost = 2;
-        setTimeout(() => audioBoost = 1, 500);
-    }
-
-    function playBook(type) {
-        boostAudio();
-        alert("Playing: " + type);
-    }
-
-    function init() {
-        for (let i = 0; i < 100; i++) {
-            particles.push(new Firefly());
-        }
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        particles.forEach(p => {
-            p.update();
-            p.draw();
-        });
-
-        connectParticles();
-        requestAnimationFrame(animate);
-    }
-
-    init();
-    animate();
-    </script>
+animate();
+</script>
 
 </body>
 </html>
