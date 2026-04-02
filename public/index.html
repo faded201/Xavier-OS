@@ -10,75 +10,35 @@
     <meta name="apple-mobile-web-app-title" content="Xavier OS">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
+    <!-- Link your CSS -->
+    <link rel="stylesheet" href="styles.css">
+
     <title>Xavier OS</title>
-
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(180deg, #282c34, #0b0c0e);
-            overflow: hidden;
-            color: white;
-            font-family: system-ui, sans-serif;
-        }
-
-        .container {
-            text-align: center;
-        }
-
-        .player {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .button {
-            background: #61dafb;
-            border: none;
-            border-radius: 10px;
-            padding: 12px 20px;
-            margin: 5px;
-            color: black;
-            cursor: pointer;
-        }
-
-        audio {
-            width: 100%;
-            margin-top: 10px;
-        }
-    </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="player">
-            <h1>🎧 Xavier OS Audiobook</h1>
 
-            <audio id="audioPlayer" preload="none">
-                <source src="your-audiobook-url.mp3" type="audio/mpeg">
-            </audio>
+    <h1 style="text-align:center;">🎧 Xavier OS Audiobooks</h1>
 
-            <div>
-                <button class="button" onclick="playAudio()">Play</button>
-                <button class="button" onclick="pauseAudio()">Pause</button>
-            </div>
+    <!-- Audiobook Cards -->
+    <div class="audiobook-container">
+
+        <div class="audiobook-card series-my-vampire-system">
+            <div class="audiobook-title">My Vampire System</div>
+            <div class="audiobook-series">Quinn Talen Universe</div>
+            <button class="audiobook-button" onclick="playBook('vampire')">▶ Play</button>
         </div>
-    </div>
 
-    <script>
-        const audio = document.getElementById("audioPlayer");
+        <div class="audiobook-card series-my-dragonic-system">
+            <div class="audiobook-title">My Dragonic System</div>
+            <div class="audiobook-series">Dragon Saga</div>
+            <button class="audiobook-button" onclick="playBook('dragon')">▶ Play</button>
+        </div>
 
-        function playAudio() {
-            audio.play();
-        }
+        <div class="audiobook-card series-shadow-blade">
+            <div class="audiobook-title">Shadow Blade</div>
+            <div class="audiobook-series">Dark Assassin Series</div>
+            <button class="audiobook-button" onclick="playBook('shadow')">▶ Play</button>
+        </div>
 
-        function pauseAudio() {
-            audio.pause();
-        }
-    </script>
-</body>
-</html>
+    </
