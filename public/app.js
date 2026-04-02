@@ -8,6 +8,15 @@ let player = {
   coins: 100
 };
 
+let market = [];
+let pityCounter = 0;
+let pityMax = 20;
+
+let boss = {
+  name: "Shadow Titan",
+  hp: 100
+};
+
 // ==========================
 // 💾 SAVE / LOAD
 // ==========================
@@ -53,7 +62,6 @@ function togglePlayPause(series) {
   if (currentSeries !== series) {
     currentSeries = series;
     isPlaying = true;
-    console.log(`🎧 Playing: ${series}`);
   } else {
     isPlaying = !isPlaying;
   }
@@ -82,9 +90,6 @@ function addXP(amount){
   if(player.xp >= player.level * 50){
     player.xp = 0;
     player.level++;
-
-    console.log("🔥 LEVEL UP!");
-
     unlockReward();
   }
 
@@ -93,9 +98,20 @@ function addXP(amount){
 }
 
 // ==========================
-// 🎲 CARD DROPS
+// 🎯 PITY + CARD DROPS
 // ==========================
 function getRandomReward(){
+
+  pityCounter++;
+
+  // 🎯 pity trigger
+  if(pityCounter >= pityMax){
+    pityCounter = 0;
+
+    return Math.random() < 0.2
+      ? {name:"Blood Evolution Core", rarity:"mythical"}
+      : {name:"God Vision", rarity:"legendary"};
+  }
 
   const roll = Math.random();
 
@@ -107,24 +123,63 @@ function getRandomReward(){
   return {name:"Blood Evolution Core", rarity:"mythical"};
 }
 
+// ==========================
+// 💥 FX (optional hook)
+// ==========================
+function flashEffect(){
+  const f = document.getElementById("flash");
+  if(!f) return;
+
+  f.style.opacity = 1;
+  setTimeout(()=>f.style.opacity = 0, 200);
+}
+
+// ==========================
+// 🎁 PACK OPEN
+// ==========================
 function unlockReward(){
 
   const reward = getRandomReward();
+
+  flashEffect();
 
   let existing = player.inventory.find(c => c.name === reward.name);
 
   if(existing){
     existing.level++;
   } else {
-    const card = {
+    player.inventory.push({
       name: reward.name,
       rarity: reward.rarity,
       level: 1,
-      id: Date.now()
-    };
-
-    player.inventory.push(card);
+      id: Date.now() + Math.random()
+    });
   }
+
+  savePlayer();
+  renderAll();
+}
+
+// ==========================
+// 🎰 10x PACK
+// ==========================
+function openMultiPack(){
+
+  let results = [];
+
+  for(let i=0;i<10;i++){
+    const reward = getRandomReward();
+
+    results.push(reward.rarity);
+
+    player.inventory.push({
+      ...reward,
+      level:1,
+      id:Date.now()+Math.random()
+    });
+  }
+
+  alert("🎰 10x Pack:\n" + results.join(", "));
 
   savePlayer();
   renderAll();
@@ -149,8 +204,6 @@ function checkFusion(){
         level: 1,
         id: Date.now()
       });
-
-      console.log("🧬 MYTHICAL FUSION!");
     }
   }
 
@@ -173,6 +226,27 @@ function getPlayerPower(){
 }
 
 // ==========================
+// 👹 BOSS SYSTEM
+// ==========================
+function attackBoss(){
+
+  let damage = getPlayerPower();
+  boss.hp -= damage;
+
+  if(boss.hp <= 0){
+    alert("🏆 Boss Defeated!");
+
+    for(let i=0;i<3;i++) unlockReward();
+
+    boss.hp = 150 + player.level * 20;
+  } else {
+    alert("⚔️ " + damage + " damage!");
+  }
+
+  renderAll();
+}
+
+// ==========================
 // 💰 CARD VALUE
 // ==========================
 function getCardValue(card){
@@ -184,15 +258,14 @@ function getCardValue(card){
 // ==========================
 // 🛒 MARKET
 // ==========================
-let market = [];
-
 function listCard(cardId){
 
   const card = player.inventory.find(c => c.id === cardId);
+  if(!card) return;
+
   const price = getCardValue(card);
 
   market.push({...card, price});
-
   player.inventory = player.inventory.filter(c => c.id !== cardId);
 
   savePlayer();
@@ -202,18 +275,14 @@ function listCard(cardId){
 function buyCard(cardId){
 
   const item = market.find(c => c.id === cardId);
+  if(!item) return;
 
   if(player.coins >= item.price){
-
     player.coins -= item.price;
     player.inventory.push(item);
-
     market = market.filter(c => c.id !== cardId);
-
-    console.log("🛒 Purchased:", item.name);
-
   } else {
-    console.log("❌ Not enough coins");
+    alert("❌ Not enough coins");
   }
 
   savePlayer();
@@ -225,7 +294,6 @@ function buyCard(cardId){
 // ==========================
 function renderAll(){
 
-  // PLAYER STATS
   const stats = document.getElementById("playerStats");
   if(stats){
     stats.innerHTML = `
@@ -236,7 +304,11 @@ function renderAll(){
     `;
   }
 
-  // INVENTORY
+  const bossEl = document.getElementById("bossHP");
+  if(bossEl){
+    bossEl.innerText = `👹 ${boss.name} HP: ${boss.hp}`;
+  }
+
   const container = document.getElementById("cardCollection");
   if(container){
     container.innerHTML = "";
@@ -258,7 +330,6 @@ function renderAll(){
     });
   }
 
-  // MARKET
   const marketEl = document.getElementById("market");
   if(marketEl){
     marketEl.innerHTML = "";
@@ -286,6 +357,7 @@ function renderAll(){
 setInterval(() => {
   if(isPlaying && currentSeries){
     audiobookSeries[currentSeries].currentXP += 10;
+
     addXP(10);
 
     if(Math.random() < 0.3){
@@ -296,5 +368,7 @@ setInterval(() => {
   }
 }, 5000);
 
-// INITIAL RENDER
+// ==========================
+// 🚀 INIT
+// ==========================
 renderAll();
