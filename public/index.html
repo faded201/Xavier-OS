@@ -2,189 +2,188 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🌌 Cinematic System Awakening</title>
+<title>🌌 System Awakening: Big Bang</title>
 
 <style>
 
-/* 🌌 BACKGROUND */
+/* 🌌 CINEMATIC BACKGROUND */
 body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  color: white;
-  overflow-x: hidden;
+  margin:0;
+  font-family:sans-serif;
+  color:white;
+  overflow-x:hidden;
 
   background:
     radial-gradient(circle at 20% 30%, #1a1f4b, transparent),
     radial-gradient(circle at 80% 70%, #4b1a3a, transparent),
-    radial-gradient(circle at center, #050510, #000000);
+    radial-gradient(circle at center, #050510, #000);
 
-  background-size: 200% 200%;
-  animation: bgShift 15s ease infinite;
+  background-size:200% 200%;
+  animation:bgShift 15s infinite;
 }
-
 @keyframes bgShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
 }
 
-/* ✨ FX */
-body::before {
+/* ✨ ROTATION GLOW */
+body::before{
   content:"";
   position:fixed;
   width:200%;
   height:200%;
   top:-50%;
   left:-50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
-  animation: rotate 40s linear infinite;
+  background:radial-gradient(circle, rgba(255,255,255,0.08), transparent);
+  animation:rotate 40s linear infinite;
 }
-@keyframes rotate {
-  to { transform: rotate(360deg); }
-}
+@keyframes rotate{to{transform:rotate(360deg)}}
 
 /* 🎧 TITLE */
-h1 {
-  text-align:center;
-  font-size:32px;
-}
+h1{text-align:center}
 
 /* 🎬 SCENE */
-#sceneImage {
-  width:100%;
-  height:220px;
-  object-fit:cover;
-}
+#sceneImage{width:100%;height:220px;object-fit:cover}
 
-/* 💬 SUB */
-#subtitles {
+/* 💬 SUBTITLES */
+#subtitles{
   position:fixed;
   bottom:90px;
   width:100%;
   text-align:center;
   background:rgba(0,0,0,0.6);
-  padding:10px;
 }
 
 /* 🎮 UI */
-#playerStats {
-  text-align:center;
-  margin:10px;
-}
+#playerStats{text-align:center;margin:10px}
 
-#rows, #cardCollection, #market {
+#rows,#cardCollection,#market{
   display:flex;
   flex-wrap:wrap;
   justify-content:center;
 }
 
 /* 🎴 CARD */
-.card {
+.card{
   margin:10px;
   padding:15px;
   width:160px;
   border-radius:15px;
   background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.2);
   text-align:center;
-  cursor:pointer;
 }
 
 /* 🌈 RARITY */
-.common {border-color:gray;}
-.uncommon {border-color:green;}
-.rare {border-color:blue;}
-.epic {border-color:purple;}
-.legendary {border-color:gold;}
-.mythical {
-  border-color:red;
-  box-shadow:0 0 15px red;
+.common{border:2px solid gray}
+.uncommon{border:2px solid green}
+.rare{border:2px solid blue}
+.epic{border:2px solid purple}
+.legendary{border:2px solid gold}
+.mythical{
+  border:2px solid red;
+  box-shadow:0 0 20px red,0 0 50px red;
 }
 
-/* 🔘 BUTTON */
-button {
-  padding:6px 10px;
-  margin-top:5px;
+/* 💥 FLASH */
+#flash{
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:white;
+  opacity:0;
+  pointer-events:none;
 }
+
+/* 🎁 PACK MODAL */
+#pack{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%) scale(0);
+  background:black;
+  padding:30px;
+  border-radius:20px;
+  text-align:center;
+  transition:0.3s;
+}
+#pack.show{transform:translate(-50%,-50%) scale(1)}
+
+#revealCard{
+  width:200px;
+  height:260px;
+  background:#111;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform:rotateY(90deg);
+  transition:0.6s;
+}
+#revealCard.show{transform:rotateY(0)}
+
+button{margin:5px;padding:8px}
 
 </style>
 </head>
 
 <body>
 
-<h1>🎧 Cinematic System Awakening</h1>
+<h1>🌌 System Awakening</h1>
 
-<!-- 🎮 PLAYER -->
 <div id="playerStats"></div>
 
-<button onclick="addXP(25)">⚡ Gain XP</button>
-<button onclick="unlockReward()">🎁 Reward</button>
+<button onclick="addXP(25)">⚡ XP</button>
+<button onclick="unlockReward()">🎁 Pack</button>
 
-<h2 style="text-align:center;">📚 Audiobooks</h2>
+<h2>📚 Audiobooks</h2>
 <div id="rows"></div>
 
 <img id="sceneImage">
 <div id="subtitles"></div>
 
-<h2 style="text-align:center;">🃏 Cards</h2>
+<h2>🃏 Cards</h2>
 <div id="cardCollection"></div>
 
-<h2 style="text-align:center;">🛒 Market</h2>
+<h2>🛒 Market</h2>
 <div id="market"></div>
+
+<div id="flash"></div>
+
+<div id="pack">
+  <h2>Opening...</h2>
+  <div id="revealCard"></div>
+</div>
 
 <script>
 
 // 🎧 AUDIO
-const music = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7c1b9c3c6e.mp3");
-music.loop = true;
+const music=new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7c1b9c3c6e.mp3");
+music.loop=true;
 
 // 📚 BOOKS
-const books = [
-"Vampire System",
-"Dragonic System",
-"Demonic Sword",
-"Beast Tamer",
-"Gods Eye"
-];
+const books=["Vampire","Dragonic","Demonic","Beast","Gods Eye"];
+const rows=document.getElementById("rows");
 
-const rows = document.getElementById("rows");
-books.forEach(title=>{
-  const c = document.createElement("div");
-  c.className="card";
-  c.innerText=title;
-  c.onclick=()=>playBook(title);
-  rows.appendChild(c);
+books.forEach(t=>{
+  let d=document.createElement("div");
+  d.className="card";
+  d.innerText=t;
+  d.onclick=()=>playBook(t);
+  rows.appendChild(d);
 });
 
 // 🎮 PLAYER
-let player = {
-  level:1,
-  xp:0,
-  coins:100,
-  inventory:[]
-};
-
+let player={level:1,xp:0,coins:100,inventory:[]};
 let market=[];
 
 // 💾 SAVE
-function save(){
-  localStorage.setItem("player", JSON.stringify(player));
-}
-function load(){
-  const d = localStorage.getItem("player");
-  if(d) player = JSON.parse(d);
-}
+function save(){localStorage.setItem("p",JSON.stringify(player))}
+function load(){let d=localStorage.getItem("p");if(d)player=JSON.parse(d)}
 load();
 
 // 🌈 RARITY
-const rarityMult={
-  common:1,
-  uncommon:1.5,
-  rare:2,
-  epic:4,
-  legendary:8,
-  mythical:15
-};
+const mult={common:1,uncommon:1.5,rare:2,epic:4,legendary:8,mythical:15};
 
 // ⚡ XP
 function addXP(x){
@@ -194,27 +193,60 @@ function addXP(x){
     player.level++;
     unlockReward();
   }
-  save();
-  render();
+  save();render();
 }
 
 // 🎲 DROP
-function getReward(){
-  const r=Math.random();
+function drop(){
+  let r=Math.random();
   if(r<0.4)return{name:"Strength",rarity:"common"};
   if(r<0.65)return{name:"Instinct",rarity:"uncommon"};
   if(r<0.85)return{name:"Dragon Flame",rarity:"rare"};
   if(r<0.95)return{name:"Shadow Step",rarity:"epic"};
   if(r<0.995)return{name:"God Vision",rarity:"legendary"};
-  return{name:"Blood Core",rarity:"mythical"};
+  return{name:"MYTHIC CORE",rarity:"mythical"};
 }
 
+// 💥 FX
+function flash(){
+  let f=document.getElementById("flash");
+  f.style.opacity=1;
+  setTimeout(()=>f.style.opacity=0,200);
+}
+function shake(){
+  document.body.style.transform="translate(5px)";
+  setTimeout(()=>document.body.style.transform="translate(-5px)",50);
+  setTimeout(()=>document.body.style.transform="translate(0)",100);
+}
+
+// 🎁 PACK
 function unlockReward(){
-  const r=getReward();
-  let e=player.inventory.find(c=>c.name===r.name);
-  if(e)e.level++;
-  else player.inventory.push({...r,level:1,id:Date.now()});
-  render();
+
+  let r=drop();
+  let pack=document.getElementById("pack");
+  let card=document.getElementById("revealCard");
+
+  pack.classList.add("show");
+  card.className="";
+  card.innerHTML="";
+
+  setTimeout(()=>{flash();shake()},200);
+
+  setTimeout(()=>{
+    card.classList.add("show",r.rarity);
+    card.innerHTML=`<div><h3>${r.name}</h3><p>${r.rarity}</p></div>`;
+
+    if(r.rarity==="mythical"){
+      flash();shake();
+      alert("🔥 MYTHICAL DROP 🔥");
+    }
+
+    player.inventory.push({...r,level:1,id:Date.now()});
+    render();
+
+  },700);
+
+  setTimeout(()=>pack.classList.remove("show"),2200);
 }
 
 // 💪 POWER
@@ -226,7 +258,7 @@ function power(){
 
 // 💰 VALUE
 function value(c){
-  return Math.floor(10*rarityMult[c.rarity]*c.level*(power()/10));
+  return Math.floor(10*mult[c.rarity]*c.level*(power()/10));
 }
 
 // 🛒 MARKET
@@ -236,7 +268,6 @@ function sell(id){
   player.inventory=player.inventory.filter(x=>x.id!==id);
   render();
 }
-
 function buy(id){
   let c=market.find(x=>x.id===id);
   if(player.coins>=c.price){
@@ -256,11 +287,10 @@ function playBook(title){
 
   function next(){
     addXP(10);
-
     img.src="https://picsum.photos/800/400?"+Math.random();
     sub.innerText=title+"... power rising";
 
-    const u=new SpeechSynthesisUtterance(sub.innerText);
+    let u=new SpeechSynthesisUtterance(sub.innerText);
     speechSynthesis.speak(u);
     u.onend=()=>setTimeout(next,800);
   }
@@ -270,34 +300,24 @@ function playBook(title){
 // 🎨 RENDER
 function render(){
 
-  document.getElementById("playerStats").innerHTML =
+  document.getElementById("playerStats").innerHTML=
     `🔥 Lv.${player.level} | XP ${player.xp} | ⚡ ${power()} | 💰 ${player.coins}`;
 
-  const col=document.getElementById("cardCollection");
+  let col=document.getElementById("cardCollection");
   col.innerHTML="";
   player.inventory.forEach(c=>{
     let d=document.createElement("div");
     d.className="card "+c.rarity;
-    d.innerHTML=`
-      <b>${c.name}</b>
-      <p>${c.rarity}</p>
-      <p>Lv.${c.level}</p>
-      <button onclick="sell(${c.id})">Sell</button>
-    `;
+    d.innerHTML=`<b>${c.name}</b><p>${c.rarity}</p><button onclick="sell(${c.id})">Sell</button>`;
     col.appendChild(d);
   });
 
-  const m=document.getElementById("market");
+  let m=document.getElementById("market");
   m.innerHTML="";
   market.forEach(c=>{
     let d=document.createElement("div");
     d.className="card "+c.rarity;
-    d.innerHTML=`
-      <b>${c.name}</b>
-      <p>${c.rarity}</p>
-      <p>💰 ${c.price}</p>
-      <button onclick="buy(${c.id})">Buy</button>
-    `;
+    d.innerHTML=`<b>${c.name}</b><p>💰 ${c.price}</p><button onclick="buy(${c.id})">Buy</button>`;
     m.appendChild(d);
   });
 
