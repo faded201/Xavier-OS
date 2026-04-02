@@ -23,17 +23,24 @@ function loadPlayer(){
 loadPlayer();
 
 // ==========================
+// 🌈 RARITY MULTIPLIERS
+// ==========================
+const rarityMult = {
+  common: 1,
+  uncommon: 1.5,
+  rare: 2,
+  epic: 4,
+  legendary: 8,
+  mythical: 15
+};
+
+// ==========================
 // 📚 AUDIOBOOK SERIES
 // ==========================
 const audiobookSeries = {
-    "Quinn Talen Vampire System": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "My Dragonic System": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "Birth of a Demonic Sword": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "Legendary Beast Tamer": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "Gods Eye": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "Dragon Inside Me": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "Shadow Blade": { duration: 60, currentXP: 0, abilitiesUnlocked: [] },
-    "Dragons Revenge": { duration: 60, currentXP: 0, abilitiesUnlocked: [] }
+  "Quinn Vampire System": { currentXP: 0 },
+  "Dragonic System": { currentXP: 0 },
+  "Demonic Sword": { currentXP: 0 }
 };
 
 // ==========================
@@ -43,15 +50,13 @@ let currentSeries = null;
 let isPlaying = false;
 
 function togglePlayPause(series) {
-    if (currentSeries !== series) {
-        currentSeries = series;
-        isPlaying = true;
-        console.log(`🎧 Playing: ${series}`);
-    } else {
-        isPlaying = !isPlaying;
-    }
-
-    console.log(isPlaying ? "▶️ Playing..." : "⏸ Paused...");
+  if (currentSeries !== series) {
+    currentSeries = series;
+    isPlaying = true;
+    console.log(`🎧 Playing: ${series}`);
+  } else {
+    isPlaying = !isPlaying;
+  }
 }
 
 // ==========================
@@ -70,7 +75,6 @@ function getXPBoost(){
 }
 
 function addXP(amount){
-
   const boost = getXPBoost();
 
   player.xp += amount * boost;
@@ -79,57 +83,28 @@ function addXP(amount){
     player.xp = 0;
     player.level++;
 
-    console.log("🔥 LEVEL UP! Now level " + player.level);
+    console.log("🔥 LEVEL UP!");
 
     unlockReward();
   }
 
   savePlayer();
+  renderAll();
 }
 
 // ==========================
-// 📚 AUDIO XP (CONNECTED)
-// ==========================
-function updateXP(series){
-
-    audiobookSeries[series].currentXP += 10;
-
-    // 🎮 GLOBAL XP
-    addXP(10);
-
-    // 🎲 CARD DROP
-    if(Math.random() < 0.3){
-      unlockReward();
-    }
-
-    // 🧠 ABILITY
-    if (audiobookSeries[series].currentXP > 50) {
-        unlockAbility(series);
-    }
-
-    // 🔀 FUSION CHECK
-    checkFusion();
-}
-
-// ==========================
-// 🧠 ABILITIES
-// ==========================
-function unlockAbility(series) {
-    audiobookSeries[series].abilitiesUnlocked.push(`New Ability for ${series}`);
-    console.log(`🧠 Ability unlocked for ${series}`);
-}
-
-// ==========================
-// 🃏 CARD SYSTEM
+// 🎲 CARD DROPS
 // ==========================
 function getRandomReward(){
 
   const roll = Math.random();
 
-  if (roll < 0.6) return {name:"Blood Power", rarity:"common"};
+  if (roll < 0.4) return {name:"Basic Strength", rarity:"common"};
+  if (roll < 0.65) return {name:"Sharp Instinct", rarity:"uncommon"};
   if (roll < 0.85) return {name:"Dragon Flame", rarity:"rare"};
   if (roll < 0.95) return {name:"Shadow Step", rarity:"epic"};
-  return {name:"God Vision", rarity:"legendary"};
+  if (roll < 0.995) return {name:"God Vision", rarity:"legendary"};
+  return {name:"Blood Evolution Core", rarity:"mythical"};
 }
 
 function unlockReward(){
@@ -140,7 +115,6 @@ function unlockReward(){
 
   if(existing){
     existing.level++;
-    console.log("⚡ UPGRADED:", existing.name, "Lv." + existing.level);
   } else {
     const card = {
       name: reward.name,
@@ -150,12 +124,10 @@ function unlockReward(){
     };
 
     player.inventory.push(card);
-    showCard(card);
-
-    console.log("🔥 NEW CARD:", card.name);
   }
 
   savePlayer();
+  renderAll();
 }
 
 // ==========================
@@ -163,29 +135,27 @@ function unlockReward(){
 // ==========================
 function checkFusion(){
 
-  const hasBlood = player.inventory.find(c => c.name === "Blood Power");
   const hasDragon = player.inventory.find(c => c.name === "Dragon Flame");
+  const hasBlood = player.inventory.find(c => c.name === "Basic Strength");
 
-  if(hasBlood && hasDragon){
+  if(hasDragon && hasBlood){
 
     const exists = player.inventory.find(c => c.name === "Dragon Blood Core");
 
     if(!exists){
-      const fusionCard = {
+      player.inventory.push({
         name: "Dragon Blood Core",
-        rarity: "legendary",
+        rarity: "mythical",
         level: 1,
         id: Date.now()
-      };
+      });
 
-      player.inventory.push(fusionCard);
-      showCard(fusionCard);
-
-      console.log("🧬 FUSION UNLOCKED: Dragon Blood Core");
+      console.log("🧬 MYTHICAL FUSION!");
     }
   }
 
   savePlayer();
+  renderAll();
 }
 
 // ==========================
@@ -206,18 +176,8 @@ function getPlayerPower(){
 // 💰 CARD VALUE
 // ==========================
 function getCardValue(card){
-
-  const rarityMult = {
-    common: 1,
-    rare: 2,
-    epic: 5,
-    legendary: 10
-  };
-
-  const playerPower = getPlayerPower();
-
   return Math.floor(
-    10 * rarityMult[card.rarity] * card.level * (playerPower / 10)
+    10 * rarityMult[card.rarity] * card.level * (getPlayerPower() / 10)
   );
 }
 
@@ -236,7 +196,7 @@ function listCard(cardId){
   player.inventory = player.inventory.filter(c => c.id !== cardId);
 
   savePlayer();
-  renderMarket();
+  renderAll();
 }
 
 function buyCard(cardId){
@@ -250,61 +210,74 @@ function buyCard(cardId){
 
     market = market.filter(c => c.id !== cardId);
 
-    console.log("🛒 Purchased", item.name);
-
-    savePlayer();
-    renderMarket();
+    console.log("🛒 Purchased:", item.name);
 
   } else {
     console.log("❌ Not enough coins");
   }
+
+  savePlayer();
+  renderAll();
 }
 
 // ==========================
-// 🎨 CARD DISPLAY
+// 🎨 RENDER EVERYTHING
 // ==========================
-function showCard(card){
+function renderAll(){
 
-  const container = document.getElementById("cardCollection");
-  if(!container) return;
-
-  const div = document.createElement("div");
-  div.className = "card-item " + card.rarity;
-
-  div.innerHTML = `
-    <h4>${card.name}</h4>
-    <p>${card.rarity}</p>
-    <p>Lv.${card.level}</p>
-    <button onclick="listCard(${card.id})">Sell</button>
-  `;
-
-  container.appendChild(div);
-}
-
-// ==========================
-// 🛒 MARKET UI
-// ==========================
-function renderMarket(){
-
-  const el = document.getElementById("market");
-  if(!el) return;
-
-  el.innerHTML = "";
-
-  market.forEach(card => {
-
-    const div = document.createElement("div");
-    div.className = "card-item " + card.rarity;
-
-    div.innerHTML = `
-      <h4>${card.name}</h4>
-      <p>${card.rarity}</p>
-      <p>💰 ${card.price}</p>
-      <button onclick="buyCard(${card.id})">Buy</button>
+  // PLAYER STATS
+  const stats = document.getElementById("playerStats");
+  if(stats){
+    stats.innerHTML = `
+      🔥 Level: ${player.level} <br>
+      ⚡ Power: ${getPlayerPower()} <br>
+      💰 Coins: ${player.coins} <br>
+      🃏 Cards: ${player.inventory.length}
     `;
+  }
 
-    el.appendChild(div);
-  });
+  // INVENTORY
+  const container = document.getElementById("cardCollection");
+  if(container){
+    container.innerHTML = "";
+
+    player.inventory.forEach(card => {
+
+      const div = document.createElement("div");
+      div.className = "card-item " + card.rarity;
+
+      div.innerHTML = `
+        <h4>${card.name}</h4>
+        <p>${card.rarity.toUpperCase()}</p>
+        <p>Lv.${card.level}</p>
+        <p>⚡ ${getCardValue(card)}</p>
+        <button onclick="listCard(${card.id})">Sell</button>
+      `;
+
+      container.appendChild(div);
+    });
+  }
+
+  // MARKET
+  const marketEl = document.getElementById("market");
+  if(marketEl){
+    marketEl.innerHTML = "";
+
+    market.forEach(card => {
+
+      const div = document.createElement("div");
+      div.className = "card-item " + card.rarity;
+
+      div.innerHTML = `
+        <h4>${card.name}</h4>
+        <p>${card.rarity}</p>
+        <p>💰 ${card.price}</p>
+        <button onclick="buyCard(${card.id})">Buy</button>
+      `;
+
+      marketEl.appendChild(div);
+    });
+  }
 }
 
 // ==========================
@@ -312,6 +285,16 @@ function renderMarket(){
 // ==========================
 setInterval(() => {
   if(isPlaying && currentSeries){
-    updateXP(currentSeries);
+    audiobookSeries[currentSeries].currentXP += 10;
+    addXP(10);
+
+    if(Math.random() < 0.3){
+      unlockReward();
+    }
+
+    checkFusion();
   }
 }, 5000);
+
+// INITIAL RENDER
+renderAll();
