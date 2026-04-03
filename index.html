@@ -3,18 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Xavier AI Library | Heavenly Thief</title>
+  <title>Xavier AI Library | Awakening</title>
   <style>
     /* =========================
        🌌 GLOBAL RESET & FONTS
     ========================= */
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400&display=swap');
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       color: white;
@@ -24,7 +20,7 @@
       font-family: 'Inter', sans-serif;
     }
 
-    /* 📜 BACKGROUND SCRIPTURE TEXTURE */
+    /* 📜 BACKGROUND SCRIPTURE */
     body::before {
       content: "";
       position: fixed;
@@ -36,31 +32,12 @@
       z-index: 0;
     }
 
-    /* 🕯️ DYNAMIC AMBIENT LIGHT */
-    body::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(circle at 20% 30%, rgba(255, 170, 90, 0.1), transparent),
-        radial-gradient(circle at 70% 60%, rgba(255, 120, 60, 0.08), transparent);
-      filter: blur(80px);
-      animation: lightMove 30s infinite alternate ease-in-out;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    @keyframes lightMove {
-      0% { transform: translate(0, 0); }
-      100% { transform: translate(100px, -50px); }
-    }
-
     @keyframes moveScript {
       to { background-position: 100% 100%; }
     }
 
     /* =========================
-       🧿 HEADER & STATS
+       🧿 HEADER & STATS UI
     ========================= */
     h1 {
       text-align: center;
@@ -155,9 +132,7 @@
       z-index: 1;
     }
 
-    .book.active .book-cover {
-      opacity: 1;
-    }
+    .book.active .book-cover { opacity: 1; }
 
     .book-cover img {
       width: 100%;
@@ -176,13 +151,8 @@
       z-index: 5;
     }
 
-    .book.active .book-title {
-      color: #f5e6c8;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-    }
-
     /* =========================
-       📲 ONBOARDING (Key Entry)
+       📲 ONBOARDING UI
     ========================= */
     #onboarding {
       position: fixed;
@@ -192,7 +162,6 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      backdrop-filter: blur(20px);
     }
 
     .onboard-box {
@@ -200,46 +169,34 @@
       padding: 40px;
       border-radius: 15px;
       text-align: center;
-      width: 350px;
-      border: 1px solid #ffd70033;
-      box-shadow: 0 0 50px rgba(0,0,0,1);
+      width: 380px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
     }
 
-    input {
-      width: 100%;
-      margin: 10px 0;
-      padding: 12px;
-      border-radius: 5px;
-      border: 1px solid #333;
-      background: #111;
-      color: gold;
-    }
-
-    button {
-      padding: 12px 25px;
-      background: #2a1b12;
-      color: #ffd700;
-      border: 1px solid #ffd700;
-      cursor: pointer;
-      font-family: 'Cinzel', serif;
-      width: 100%;
-      margin-top: 10px;
-    }
-
-    button:hover {
-      background: #ffd700;
-      color: black;
-    }
+    .key-group { margin-bottom: 20px; text-align: left; }
+    .key-group label { display: block; font-family: 'Cinzel', serif; font-size: 11px; color: #ffd700; margin-bottom: 5px; }
+    .key-link { font-size: 10px; color: #f5e6c8; text-decoration: none; opacity: 0.6; display: block; margin-bottom: 8px; }
+    
+    input { width: 100%; padding: 12px; border-radius: 5px; border: 1px solid #333; background: #000; color: #ffd700; }
+    button { padding: 12px 25px; background: #2a1b12; color: #ffd700; border: 1px solid #ffd700; cursor: pointer; font-family: 'Cinzel', serif; width: 100%; margin-top: 10px; }
   </style>
 </head>
 <body>
 
   <div id="onboarding">
     <div class="onboard-box">
-      <h2 style="font-family:'Cinzel'; color:#f5e6c8; margin-bottom:20px;">Xavier-OS System</h2>
-      <input type="password" id="geminiKey" placeholder="Enter Gemini API Key">
-      <input type="password" id="githubKey" placeholder="Enter GitHub Token">
-      <button onclick="startSystem()">AWAKEN SYSTEM</button>
+      <h2 style="font-family:'Cinzel'; color:#f5e6c8; margin-bottom:25px;">SYSTEM AWAKENING</h2>
+      <div class="key-group">
+        <label>GEMINI API KEY</label>
+        <a href="https://aistudio.google.com/app/api-keys" target="_blank" class="key-link">↗ Get Gemini Key</a>
+        <input type="password" id="geminiKey" placeholder="Paste Gemini Key">
+      </div>
+      <div class="key-group">
+        <label>GITHUB TOKEN</label>
+        <a href="https://github.com/settings/tokens" target="_blank" class="key-link">↗ Get GitHub Token</a>
+        <input type="password" id="githubKey" placeholder="Paste GitHub Token">
+      </div>
+      <button onclick="startSystem()">INITIALIZE ARCHIVE</button>
     </div>
   </div>
 
@@ -251,7 +208,7 @@
       <div class="placeholder-icon"></div>
       <div class="book-title">Heavenly Thief</div>
       <div class="book-cover">
-        <img src="https://i.imgur.com/your-image-url.jpg" alt="Cover">
+        <img src="https://i.imgur.com/your-image.jpg" alt="Cover">
       </div>
     </div>
   </div>
@@ -259,20 +216,24 @@
   <script>
     function startSystem() {
       const gKey = document.getElementById('geminiKey').value;
-      if(gKey) {
+      const hKey = document.getElementById('githubKey').value;
+      if(gKey && hKey) {
+        localStorage.setItem('gemini_key', gKey);
+        localStorage.setItem('github_token', hKey);
         document.getElementById('onboarding').style.display = 'none';
-        document.getElementById('stats').innerText = "System Status: Online | Source: Gemini-Flash";
+        document.getElementById('stats').innerText = "SYSTEM: ONLINE | ARCHIVE LINKED";
       }
     }
 
     function activateBook(el) {
-      // Toggle the active/alive state
-      if (el.classList.contains('dead')) {
-        el.classList.remove('dead');
-        el.classList.add('active');
-      } else {
-        el.classList.remove('active');
-        el.classList.add('dead');
+      el.classList.toggle('dead');
+      el.classList.toggle('active');
+    }
+
+    window.onload = () => {
+      if(localStorage.getItem('gemini_key') && localStorage.getItem('github_token')) {
+        document.getElementById('onboarding').style.display = 'none';
+        document.getElementById('stats').innerText = "SYSTEM: RESTORED";
       }
     }
   </script>
