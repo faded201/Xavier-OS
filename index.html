@@ -2,156 +2,72 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🌌 Xavier-OS Awakening</title>
-
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
 
 <style>
+/* 🌌 RESET & THEME */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Garamond', serif}
+body{background:#000;color:#fff;overflow-x:hidden;cursor:crosshair}
+body::before{content:"";position:fixed;inset:0;background:url("https://i.imgur.com/8IuucQZ.png");opacity:.05;pointer-events:none}
 
-/* 🌌 RESET */
-*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif}
+/* 💡 DYNAMIC LIGHTING */
+.scripture-glow{position:fixed;inset:0;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(255,180,90,0.2),transparent 400px);z-index:1}
 
-/* 🌑 DARK WORLD */
-body{
-  background:#000;
-  color:#fff;
-  overflow-x:hidden;
-}
+/* 📊 INTERFACE */
+h1{text-align:center;margin:30px 0;letter-spacing:5px;color:#ffd27a;text-shadow:0 0 10px rgba(255,210,122,0.5)}
+#stats{text-align:center;margin:10px;color:#ffd27a;font-size:0.9rem;text-transform:uppercase;letter-spacing:2px}
+#favorites{text-align:center;margin:10px;color:gold;font-style:italic}
 
-/* 📜 BACKGROUND */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  background:url("https://i.imgur.com/8IuucQZ.png");
-  opacity:.05;
-}
+/* 📖 THE ARCHIVE GRID */
+#rows{display:flex;flex-wrap:wrap;justify-content:center;padding:20px;position:relative;z-index:2}
 
-/* 💡 LIGHT */
-.scripture-glow{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  mix-blend-mode:screen;
-  background:
-    radial-gradient(circle at var(--x,50%) var(--y,50%),
-    rgba(255,180,90,0.25),
-    transparent 300px);
-}
+/* 📖 LUXURY BOOK COVER */
+.book{width:160px;margin:25px;cursor:pointer;transition:transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)}
+.book:hover{transform:scale(1.1) translateY(-10px)}
 
-/* 📊 STATS */
-#stats{
-  text-align:center;
-  margin:10px;
-  color:#ffd27a;
-}
-
-/* 📖 GRID */
-#rows{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-}
-
-/* 📖 BOOK */
-.book{
-  width:160px;
-  margin:15px;
-  cursor:pointer;
-  transition:.3s;
-}
-
-.book:hover{
-  transform:scale(1.05);
-}
-
-/* 📷 COVER */
 .cover{
-  width:100%;
-  height:140px;
-  border-radius:10px;
-  overflow:hidden;
-  box-shadow:0 0 15px rgba(255,140,60,0.4);
+  width:100%;height:220px;border-radius:5px 15px 15px 5px;overflow:hidden;
+  box-shadow:10px 10px 20px rgba(0,0,0,0.8);border-left:8px solid #1a0f0a;
+  position:relative;background:#2a1a12;border:1px solid rgba(212,175,55,0.3);
 }
 
-.cover img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  transition:.4s;
+.character-oval{
+    position:absolute;top:50%;left:55%;transform:translate(-50%,-50%);
+    width:70%;height:60%;border-radius:50%;border:2px solid #ffd27a;
+    overflow:hidden;background:#000;box-shadow:0 0 15px rgba(255,210,122,0.3);
 }
 
-.book:hover img{
-  transform:scale(1.1);
-}
+.character-oval img{width:100%;height:100%;object-fit:cover;transition:.5s;filter:sepia(0.2)}
+.book:hover img{transform:scale(1.15);filter:sepia(0)}
 
-/* 📖 TITLE */
-.book-title{
-  text-align:center;
-  margin-top:6px;
-  font-size:14px;
-}
+.book-title{text-align:center;margin-top:12px;font-size:14px;color:#e0e0e0;font-weight:bold}
 
-/* 📖 READER */
+/* 📖 CINEMATIC READER */
 #reader{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.96);
-  display:none;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
+  position:fixed;inset:0;background:rgba(0,0,0,0.98);display:none;
+  z-index:999;flex-direction:row;
 }
 
-#readerContent{
-  max-width:600px;
-  padding:20px;
-  color:#ffd27a;
-}
+.reader-split{display:flex;width:100%;height:100%}
+.reader-visual{flex:1;display:flex;align-items:center;justify-content:center;background:#000;padding:40px}
+.reader-visual img{width:80%;border:3px solid #ffd27a;box-shadow:0 0 50px rgba(0,0,0,1)}
 
-/* BUTTON */
-button{
-  padding:10px;
-  margin:5px;
-}
+.reader-text-panel{flex:1;padding:60px;overflow-y:auto;background:linear-gradient(to right, #05070a, #0f1218);display:flex;flex-direction:column}
+#readerContent{line-height:1.8;font-size:1.2rem;color:#ccc;text-align:justify}
+#readerContent h2{color:#ffd27a;margin-bottom:20px}
 
-h1{text-align:center;margin:20px}
-
-/* ⭐ FAVORITES */
-#favorites{
-  text-align:center;
-  margin:10px;
-  color:gold;
-}
+.controls{margin-top:auto;padding-top:40px;display:flex;gap:10px}
+button{background:transparent;border:1px solid #ffd27a;color:#ffd27a;padding:10px 20px;cursor:pointer;transition:.3s;text-transform:uppercase;letter-spacing:1px}
+button:hover{background:#ffd27a;color:#000}
 
 /* 🔐 ONBOARDING */
-#onboarding{
-  position:fixed;
-  inset:0;
-  background:#000;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:9999;
-}
-
-.box{
-  background:#111;
-  padding:20px;
-  border-radius:10px;
-  width:300px;
-  text-align:center;
-}
-
-.box input{
-  width:100%;
-  margin:5px 0;
-  padding:8px;
-}
-
+#onboarding{position:fixed;inset:0;background:#000;display:flex;justify-content:center;align-items:center;z-index:9999}
+.box{background:#111;padding:40px;border:1px solid #ffd27a;border-radius:2px;width:350px;text-align:center;box-shadow:0 0 30px rgba(255,210,122,0.1)}
+.box input{width:100%;margin:15px 0;padding:12px;background:#000;border:1px solid #333;color:#fff;outline:none}
+.box input:focus{border-color:#ffd27a}
 </style>
 </head>
 
@@ -159,184 +75,187 @@ h1{text-align:center;margin:20px}
 
 <div id="onboarding">
   <div class="box">
-    <h2>🔮 Setup AI (Optional)</h2>
-    <input id="gemini" placeholder="Gemini API Key">
-    <input id="groq" placeholder="Groq API Key">
-    <button onclick="saveKeys()">Enter</button>
+    <h2 style="color:#ffd27a; margin-bottom:10px">XAVIER INITIALIZATION</h2>
+    <p style="font-size:0.8rem; color:#888">Enter Access Tokens for Autonomous Operation</p>
+    <input id="gemini" type="password" placeholder="Gemini API Key">
+    <input id="github" type="password" placeholder="GitHub Access Token">
+    <button onclick="saveKeys()">WAKE XAVIER</button>
   </div>
 </div>
 
 <div class="scripture-glow"></div>
 
-<h1>📜 Xavier-OS</h1>
+<h1>📜 XAVIER-OS</h1>
 
 <div id="stats"></div>
 <div id="favorites"></div>
 
-<div style="text-align:center;">
-  <button onclick="manualXP()">⚡ Gain XP</button>
-</div>
-
 <div id="rows"></div>
 
-<!-- 📖 READER -->
 <div id="reader">
-  <div id="readerContent"></div>
-  <div>
-    <button onclick="prevPage()">⬅️</button>
-    <button onclick="nextPage()">➡️</button>
-    <button onclick="closeReader()">❌</button>
+  <div class="reader-split">
+    <div class="reader-visual">
+        <img id="readerArt" src="">
+    </div>
+    <div class="reader-text-panel">
+        <div id="readerContent"></div>
+        <div class="controls">
+            <button onclick="prevPage()">⬅ Previous</button>
+            <button onclick="nextPage()">Next ➡</button>
+            <button onclick="closeReader()">❌ Close Archive</button>
+        </div>
+    </div>
   </div>
 </div>
 
-<!-- 🔊 AUDIO -->
-<audio id="ambient" loop>
-  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b0d9f.mp3">
-</audio>
+<audio id="ambient" loop><source src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b0d9f.mp3"></audio>
+<audio id="whisper"><source src="https://www.soundjay.com/buttons/sounds/button-29.mp3"></audio>
 
 <script>
+/* 🔑 SYSTEM KEYS */
+const AI_KEYS = { GEMINI: "", GITHUB: "" };
+const REPO_PATH = "faded201/Xavier-OS";
 
-/* 🔑 KEYS */
-const AI_KEYS = {};
-
-/* SAVE KEYS */
+/* SAVE & LOAD KEYS */
 function saveKeys(){
   AI_KEYS.GEMINI = document.getElementById("gemini").value;
-  AI_KEYS.GROQ = document.getElementById("groq").value;
-
-  localStorage.setItem("keys", JSON.stringify(AI_KEYS));
+  AI_KEYS.GITHUB = document.getElementById("github").value;
+  localStorage.setItem("xavier_keys", JSON.stringify(AI_KEYS));
   document.getElementById("onboarding").style.display="none";
+  location.reload();
 }
 
-/* LOAD KEYS */
-(function(){
-  const k = JSON.parse(localStorage.getItem("keys")||"{}");
-  Object.assign(AI_KEYS,k);
-  if(k.GEMINI||k.GROQ){
-    document.getElementById("onboarding").style.display="none";
-  }
+(function loadKeys(){
+  const k = JSON.parse(localStorage.getItem("xavier_keys")||"{}");
+  Object.assign(AI_KEYS, k);
+  if(k.GEMINI) document.getElementById("onboarding").style.display="none";
 })();
 
-/* 🔊 AUDIO */
-const ambient=document.getElementById("ambient");
-document.body.addEventListener("click",()=>ambient.play().catch(()=>{}));
-
-/* 💡 LIGHT */
-document.addEventListener("mousemove",e=>{
-  document.querySelector(".scripture-glow")
-  .style.setProperty("--x",e.clientX+"px");
+/* 💡 LIGHT FOLLOW */
+document.addEventListener("mousemove", e => {
+  const glow = document.querySelector(".scripture-glow");
+  glow.style.setProperty("--x", e.clientX + "px");
+  glow.style.setProperty("--y", e.clientY + "px");
 });
 
-/* 📚 CORE */
-const coreBooks=[
-"Vampire System","Gods Eye","My Dragonic System",
-"Dragon Inside of Me","Shadow Blade",
-"Birth of a Demonic Sword","Legendary Beast Tamer"
-];
+/* 🔊 AUDIO CONTROL */
+const ambient = document.getElementById("ambient");
+const whisper = document.getElementById("whisper");
+document.body.addEventListener("click", () => ambient.play().catch(()=>{}), {once: true});
 
-/* ❤️ FAVORITES */
-let fav = JSON.parse(localStorage.getItem("fav")||"[]");
+/* 📚 THE CORE ARCHIVE */
+const coreBooks = ["Vampire System", "Gods Eye", "My Dragonic System", "Dragon Inside of Me", "Shadow Blade", "Birth of a Demonic Sword", "Legendary Beast Tamer"];
 
-function toggleFav(n){
-  fav = fav.includes(n)?fav.filter(x=>x!=n):[...fav,n];
-  localStorage.setItem("fav",JSON.stringify(fav));
-  renderFav();
+/* 🚀 AUTONOMOUS ARCHIVER (GITHUB POST) */
+async function autoArchive(title, text, image) {
+  if(!AI_KEYS.GITHUB) return;
+  const filename = `library/${title.replace(/\s+/g, '_').toLowerCase()}.json`;
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify({title, text, image, date: new Date().toISOString()}, null, 2))));
+  
+  try {
+    await fetch(`https://api.github.com/repos/${REPO_PATH}/contents/${filename}`, {
+      method: "PUT",
+      headers: { "Authorization": `Bearer ${AI_KEYS.GITHUB}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `Xavier-OS Auto-Gen: ${title}`, content: content })
+    });
+    console.log("Archive Synchronized.");
+  } catch (e) { console.error("Archive Failed."); }
 }
 
-function renderFav(){
-  const f=document.getElementById("favorites");
-  f.innerHTML="⭐ "+fav.join(" | ");
+/* 🧠 AI STORY GENERATION (GEMINI 3 FLASH) */
+async function generateAIPages(title) {
+    if(!AI_KEYS.GEMINI) return ["<p>No Gemini Key detected. Access denied.</p>"];
+    
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_KEYS.GEMINI}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: `You are Xavier. Write a cinematic, dark fantasy chapter for "${title}".` }] }] })
+        });
+        const data = await res.json();
+        const fullText = data.candidates[0].content.parts[0].text;
+        
+        // Auto-Archive in background
+        autoArchive(title, fullText, `https://image.pollinations.ai/prompt/${encodeURIComponent(title)}`);
+        
+        return fullText.match(/.{1,800}/g).map(t => `<p>${t}</p>`);
+    } catch (e) { return ["<p>The archives are failing. Check connection.</p>"]; }
 }
 
-/* 🖼️ IMAGE */
-function img(title){
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title+" fantasy cinematic character")}`;
-}
+/* 📖 READER ENGINE */
+let page=0, pages=[], currentBook=null;
 
-/* 📖 BOOK */
-function createBook(name){
-  const b=document.createElement("div");
-  b.className="book";
-
-  b.innerHTML=`
-    <div class="cover">
-      <img src="${img(name)}">
-    </div>
-    <div class="book-title">${name}</div>
-    <button onclick="toggleFav('${name}')">⭐</button>
-  `;
-
-  b.onclick=()=>openReader(name);
-  return b;
-}
-
-/* 📖 STORY */
-function story(t){
-  return Array.from({length:10},(_,i)=>`
-    <h3>${t} — Chapter ${i+1}</h3>
-    <p>A cinematic journey unfolds... power awakens within.</p>
-  `);
-}
-
-/* 📖 READER */
-let page=0,pages=[],currentBook=null;
-
-function openReader(t){
-  currentBook=t;
-  pages=story(t);
-  page=0;
-  reader.style.display="flex";
+async function openReader(t){
+  whisper.play().catch(()=>{});
+  currentBook = t;
+  document.getElementById("readerArt").src = `https://image.pollinations.ai/prompt/${encodeURIComponent(t + " dark fantasy portrait")}`;
+  document.getElementById("readerContent").innerHTML = "<h2>Awakening Archive...</h2>";
+  document.getElementById("reader").style.display = "flex";
+  
+  pages = await generateAIPages(t);
+  page = 0;
   renderPage();
+  speak(pages[0]);
 }
 
 function renderPage(){
-  readerContent.innerHTML=pages[page];
+  document.getElementById("readerContent").innerHTML = `<h2>${currentBook}</h2>` + pages[page];
 }
 
-function nextPage(){if(page<pages.length-1){page++;renderPage();addXP();}}
-function prevPage(){if(page>0){page--;renderPage();}}
-function closeReader(){reader.style.display="none";}
+function nextPage(){ if(page < pages.length - 1){ page++; renderPage(); addXP(); speak(pages[page]); }}
+function prevPage(){ if(page > 0){ page--; renderPage(); speak(pages[page]); }}
+function closeReader(){ document.getElementById("reader").style.display="none"; window.speechSynthesis.cancel(); }
 
-/* ⚡ XP */
-let player={level:1,xp:0};
+/* 🔊 TEXT-TO-SPEECH */
+function speak(html){
+    window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(html.replace(/<[^>]*>/g, ''));
+    msg.rate = 0.9;
+    window.speechSynthesis.speak(msg);
+}
+
+/* ⚡ PROGRESSION SYSTEM */
+let player = JSON.parse(localStorage.getItem("xavier_player") || '{"level":1,"xp":0}');
 
 function addXP(){
-  player.xp+=10;
-  if(player.xp>=player.level*100){
-    player.xp=0;
-    player.level++;
-    spawn();
-  }
-  render();
+  player.xp += 15;
+  if(player.xp >= player.level * 100){ player.xp = 0; player.level++; }
+  localStorage.setItem("xavier_player", JSON.stringify(player));
+  renderStats();
 }
 
-function manualXP(){addXP();}
-
-/* 📚 SPAWN */
-function spawn(){
-  const name=Math.random()<0.3
-    ? coreBooks[Math.random()*coreBooks.length|0]
-    : "Generated Fantasy Book";
-
-  rows.appendChild(createBook(name));
+/* 📚 LIBRARY UI */
+function createBook(name){
+  const b = document.createElement("div");
+  b.className = "book";
+  b.innerHTML = `
+    <div class="cover">
+      <div class="character-oval">
+        <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(name + " fantasy portrait")}" loading="lazy">
+      </div>
+    </div>
+    <div class="book-title">${name}</div>
+  `;
+  b.onclick = () => openReader(name);
+  return b;
 }
 
-/* 📊 UI */
-function render(){
-  stats.innerHTML=`🔥 Level ${player.level} | ⚡ XP ${player.xp}`;
+function renderStats(){
+  document.getElementById("stats").innerHTML = `🔥 Rank: Level ${player.level} | ⚡ Essence: ${player.xp} XP`;
 }
 
-/* 🚀 INIT */
 function init(){
-  coreBooks.forEach(n=>rows.appendChild(createBook(n)));
-  for(let i=0;i<130;i++) rows.appendChild(createBook("Mystery Book "+i));
-  renderFav();
-  render();
+  const rows = document.getElementById("rows");
+  coreBooks.forEach(n => rows.appendChild(createBook(n)));
+  for(let i=0; i<40; i++) rows.appendChild(createBook("Lost Archive "+i));
+  renderStats();
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
 }
 
 init();
-
 </script>
-
 </body>
 </html>
