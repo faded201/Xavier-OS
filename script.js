@@ -22,21 +22,24 @@ const XavierOS = () => {
       title: "Vampire System",
       genre: "Grit / Progression",
       cover: "/assets/images/covers/vampire-system.webp", 
-      description: "A world where leveling up costs blood. Every drop counts."
+      description: "A world where leveling up costs blood. Every drop counts.",
+      characterImage: "https://ui-avatars.com/api/?name=Vampire&background=8B0000&color=fff&rounded=true&size=128" // Thematic image for Vampire System
     },
     {
       id: "heavenly-thief",
       title: "Heavenly Thief",
       genre: "Celestial Heist",
       cover: "/assets/images/covers/heavenly-thief.webp",
-      description: "Stealing the light of the stars from the gods themselves."
+      description: "Stealing the light of the stars from the gods themselves.",
+      characterImage: "https://ui-avatars.com/api/?name=Thief&background=4B0082&color=fff&rounded=true&size=128" // Thematic image for Heavenly Thief
     },
     {
       id: "shadow-monarch",
       title: "Shadow Monarch",
       genre: "Dark Fantasy",
       cover: "/assets/images/covers/shadow-monarch.webp",
-      description: "Arise. The shadows belong to him now."
+      description: "Arise. The shadows belong to him now.",
+      characterImage: "https://ui-avatars.com/api/?name=Shadow&background=000000&color=fff&rounded=true&size=128" // Thematic image for Shadow Monarch
     }
     // Add your other 147 titles here following this exact format
   ];
@@ -80,35 +83,38 @@ const XavierOS = () => {
         <p style={styles.status}>SYSTEM STATUS: {isAwakening ? "PROCESSING..." : "ONLINE"}</p>
       </header>
 
-      {activeBook && (
-        <div style={styles.nowPlaying}>
-          <img src={activeBook.cover} alt="Active Cover" style={styles.heroImage} />
-          <div style={styles.controls}>
-            <h2 style={{margin: 0}}>{activeBook.title}</h2>
-            <p style={{color: '#888'}}>{activeBook.genre}</p>
-            
-            {isAwakening && <div className="loader">Synchronizing Aetherial Frequencies...</div>}
-            {error && <p style={{color: 'red'}}>{error}</p>}
-            
-            {audioUrl && (
-              <audio controls src={audioUrl} autoPlay style={styles.audioPlayer}>
-                Your browser does not support the audio element.
-              </audio>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Glowing Ancient Scripture Background */}
+      <div className="ancient-scripture">
+        ᛟ ᚢ ᚱ ᛗ ᚨ ᚷ ᛁ ᚲ ᛒ ᛟ ᛟ ᚲ ᛊ <br/><br/> ᛟ ᚢ ᚱ ᛗ ᚨ ᚷ ᛁ ᚲ ᛒ ᛟ ᛟ ᚲ ᛊ
+      </div>
 
-      <section style={styles.grid}>
+      <section id="rows">
         {bookLibrary.map((book) => (
-          <div key={book.id} style={styles.card} onClick={() => awakenBook(book)}>
-            <div style={styles.imageWrapper}>
-              <img src={book.cover} alt={book.title} style={styles.coverImage} />
-              <div style={styles.overlay}>
-                <span style={styles.awakenText}>AWAKEN</span>
+          <div key={book.id} className="book-wrapper" onClick={() => awakenBook(book)}>
+            <div className={`book ${activeBook?.id === book.id ? 'active' : 'dead'}`}>
+              {/* Front Cover */}
+              <div className="book-cover">
+                <h3 className="book-title">{book.title}</h3>
+                <div className="character-circle" style={{ backgroundImage: `url(${book.characterImage})` }}></div>
+              </div>
+              {/* Inside Content (Loads when clicked) */}
+              <div className="book-pages">
+                <div className="page-content">
+                  <h4 style={{ borderBottom: '1px solid #7a5c43', paddingBottom: '5px', marginTop: 0 }}>{book.title}</h4>
+                  <p style={{ fontSize: '0.85em', color: '#5a3c23', fontWeight: 'bold' }}>{book.genre}</p>
+                  <p style={{ fontSize: '0.85em', lineHeight: '1.4' }}>{book.description}</p>
+                  
+                  {activeBook?.id === book.id && isAwakening && <div className="loader" style={{marginTop: '20px'}}>Summoning knowledge...</div>}
+                  {activeBook?.id === book.id && error && <p style={{ color: 'red', fontSize: '0.8em' }}>{error}</p>}
+                  
+                  {activeBook?.id === book.id && audioUrl && !isAwakening && (
+                    <audio controls src={audioUrl} autoPlay style={{ width: '100%', marginTop: '15px', height: '35px' }}>
+                      Your browser does not support the audio element.
+                    </audio>
+                  )}
+                </div>
               </div>
             </div>
-            <h3 style={styles.bookTitle}>{book.title}</h3>
           </div>
         ))}
       </section>
