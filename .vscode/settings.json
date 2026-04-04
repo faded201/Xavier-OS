@@ -1,1 +1,10 @@
+<<<<<<< HEAD
 {}
+=======
+{
+    "search.useGlobalIgnoreFiles": true,
+    "files.exclude": {
+        "": true
+    }
+}
+>>>>>>> e82a5c0b74224dbef8e478a18eb0199a712830f8
