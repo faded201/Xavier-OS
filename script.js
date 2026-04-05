@@ -1,4 +1,4 @@
-const { useState } = React;
+const { useState, useEffect, useRef } = React;
 
 /**
  * XAVIER-OS: AETHERIA (Stable Build 1.0)
@@ -17,6 +17,169 @@ const XavierOS = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [storyContent, setStoryContent] = useState(null);
   const [selectedAI, setSelectedAI] = useState('gemini');
+  const listeningTimer = useRef(0);
+  const [inventory, setInventory] = useState(() => {
+    const saved = localStorage.getItem('xavier_inventory');
+    return saved ? JSON.parse(saved) : { xp: 0, level: 1, cards: [], aetherium: 0, aetheriumHistory: [] };
+  });
+  const [latestUnlock, setLatestUnlock] = useState(null);
+  const [craftingSlots, setCraftingSlots] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem('xavier_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem('xavier_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [viewMode, setViewMode] = useState('all'); // 'all', 'favorites', 'history'
+
+  useEffect(() => {
+    localStorage.setItem('xavier_inventory', JSON.stringify(inventory));
+  }, [inventory]);
+
+  const gainXP = (amount, book) => {
+    setInventory(prev => {
+      let newXp = prev.xp + amount;
+      let newLevel = prev.level;
+      let newCards = [...prev.cards];
+      let unlocked = null;
+
+      // Level up threshold increases: Level * 100 XP
+      if (newXp >= newLevel * 100) {
+        newXp = newXp - (newLevel * 100);
+        newLevel += 1;
+        unlocked = rollForCard(book);
+        newCards.unshift(unlocked); // Add to beginning
+        setLatestUnlock(unlocked);
+        setTimeout(() => setLatestUnlock(null), 6000);
+      }
+
+      // Aetherium trickle: Gain half of XP earned as Aetherium 
+      let newAetherium = (prev.aetherium || 0) + (amount / 2);
+      
+      let newHistory = prev.aetheriumHistory || [];
+      if (amount >= 50) { // Log large chunks (like chapter completions) and ignore small 10xp background trickles
+        const newTx = { id: Date.now(), desc: `Chapter Complete (${book?.title || 'Unknown'})`, amount: amount / 2, date: new Date().toLocaleDateString() };
+        newHistory = [newTx, ...newHistory].slice(0, 50);
+      }
+      
+      return { ...prev, xp: newXp, level: newLevel, cards: newCards, aetherium: newAetherium, aetheriumHistory: newHistory };
+    });
+  };
+
+  const handleTimeUpdate = (e) => {
+    listeningTimer.current += 1;
+    if (listeningTimer.current > 120) { // Approx 30s of playback
+      listeningTimer.current = 0;
+      if (activeBook) gainXP(10, activeBook);
+    }
+  };
+
+  const rollForCard = (book) => {
+    const roll = Math.random() * 100;
+    let rarity = 'Common';
+    let color = '#a0a0a0'; // Gray
+    if (roll > 97) { rarity = 'Mythical'; color = '#ff4500'; } // Red-Orange
+    else if (roll > 85) { rarity = 'Legendary'; color = '#ffd700'; } // Gold
+    else if (roll > 65) { rarity = 'Epic'; color = '#b026ff'; } // Purple
+    else if (roll > 40) { rarity = 'Rare'; color = '#0070dd'; } // Blue
+
+    const traits = book ? book.genre.split(/[\s/]+/) : ['Mystic'];
+    const baseTrait = traits[0] || 'Mystic';
+    return { id: Date.now(), rarity, name: `${baseTrait} Core`, bookSource: book ? book.title : 'Unknown', color };
+  };
+
+  const toggleCraftingSelection = (cardId, rarity) => {
+    if (rarity !== 'Common') return; // Only allow commons in the forge for now
+    setCraftingSlots(prev => {
+      if (prev.includes(cardId)) return prev.filter(id => id !== cardId);
+      if (prev.length < 3) return [...prev, cardId];
+      return prev;
+    });
+  };
+
+  const executeCrafting = () => {
+    if (craftingSlots.length !== 3) return alert("Select exactly 3 Common cards to forge.");
+    if ((inventory.aetherium || 0) < 100) return alert("Insufficient Aetherium 💎! Keep reading or purchase more in the store.");
+
+    setInventory(prev => {
+      const remainingCards = prev.cards.filter(c => !craftingSlots.includes(c.id));
+      const sacrificed = prev.cards.filter(c => craftingSlots.includes(c.id));
+      const baseName = sacrificed[0]?.name.split(' ')[0] || 'Aether';
+      
+      const newCard = { id: Date.now(), rarity: 'Rare', name: `Refined ${baseName} Soul`, bookSource: 'The Aether Forge', color: '#0070dd' };
+      setLatestUnlock(newCard);
+      setTimeout(() => setLatestUnlock(null), 6000);
+
+      const newTx = { id: Date.now(), desc: `Forged Rare Card`, amount: -100, date: new Date().toLocaleDateString() };
+      const newHistory = [newTx, ...(prev.aetheriumHistory || [])].slice(0, 50);
+      return { ...prev, cards: [newCard, ...remainingCards], aetherium: prev.aetherium - 100, aetheriumHistory: newHistory };
+    });
+    setCraftingSlots([]);
+  };
+  
+  const purchaseAetherium = () => {
+    setShowPaymentModal(true);
+  };
+
+  const handleStripeCheckout = () => {
+    // Frontend-only approach: Redirect to a Stripe Payment Link
+    // NOTE: Replace the URL below with your actual Stripe Payment Link
+    window.location.href = "https://buy.stripe.com/test_YOUR_LINK_HERE";
+  };
+
+  useEffect(() => {
+    localStorage.setItem('xavier_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('xavier_history', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    // Dynamically load the PayPal SDK script
+    if (!window.paypal) {
+      const script = document.createElement("script");
+      // NOTE: Replace 'test' with your actual PayPal Client ID
+      script.src = "https://www.paypal.com/sdk/js?client-id=test&currency=USD";
+      script.async = true;
+      script.onload = () => setPaypalLoaded(true);
+      document.body.appendChild(script);
+    } else {
+      setPaypalLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Render the PayPal button once the script is loaded and the modal is open
+    if (showPaymentModal && paypalLoaded && window.paypal) {
+      const container = document.getElementById("paypal-button-container");
+      if (container) container.innerHTML = ""; // Clear existing buttons
+      window.paypal.Buttons({
+        createOrder: (data, actions) => actions.order.create({ purchase_units: [{ amount: { value: "4.99" } }] }),
+        onApprove: (data, actions) => actions.order.capture().then((details) => {
+          setInventory(prev => {
+            const newTx = { id: Date.now(), desc: `Aetherium Purchase`, amount: 500, date: new Date().toLocaleDateString() };
+            const newHistory = [newTx, ...(prev.aetheriumHistory || [])].slice(0, 50);
+            return { ...prev, aetherium: (prev.aetherium || 0) + 500, aetheriumHistory: newHistory };
+          });
+          setShowPaymentModal(false);
+          alert(`Payment successful, ${details.payer.name.given_name}! 500 💎 added to your vault.`);
+        })
+      }).render("#paypal-button-container");
+    }
+  }, [showPaymentModal, paypalLoaded]);
+
+  const toggleFavorite = (e, bookId) => {
+    e.stopPropagation(); // Prevents the book from opening when clicking the heart
+    setFavorites(prev => 
+      prev.includes(bookId) ? prev.filter(id => id !== bookId) : [...prev, bookId]
+    );
+  };
 
   // DATA: 215 most sought-after titles on the planet
   const bookLibrary = [
@@ -102,15 +265,29 @@ const XavierOS = () => {
     setCurrentImage(null);
     setStoryContent(null);
 
+    // Add to reading history (store up to 20 recent books)
+    setHistory(prev => {
+      const newHistory = [book.id, ...prev.filter(id => id !== book.id)];
+      return newHistory.slice(0, 20);
+    });
+
     try {
+      // Calculate the listener's 'Aura' using their 3 rarest cards to dynamically alter the story
+      const weights = { Mythical: 5, Legendary: 4, Epic: 3, Rare: 2, Common: 1 };
+      const sortedCards = [...(inventory.cards || [])].sort((a, b) => weights[b.rarity] - weights[a.rarity]).slice(0, 3);
+      const auraTraits = sortedCards.map(c => `${c.rarity} ${c.name}`).join(', ');
+      const auraPrompt = auraTraits ? ` The listener possesses a supernatural aura defined by these artifacts: [${auraTraits}]. Extremely subtly weave an easter egg, sensory detail, or mechanic related to these artifacts into this chapter's narrative to reward the listener.` : "";
+
       // Generate story content first
       const storyResponse = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           series: book.id, 
-          chapterNumber: 1,
-          aiModel: selectedAI 
+          chapterNumber: book.chapterNumber || 1,
+          aiModel: selectedAI,
+          temperature: 0.3, // Lower temperature to prevent random gibberish
+          systemInstruction: `CRITICAL STRICT MODE: You are a professional audiobook author. Adhere STRICTLY to the established storyline, lore, and character arcs. Output ONLY clear, coherent narrative prose. Do NOT output random gibberish, code, or break character.${auraPrompt}`
         })
       });
 
@@ -162,9 +339,44 @@ const XavierOS = () => {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
+        <div style={styles.wallet} onClick={purchaseAetherium} title="Get more Aetherium">
+          <span style={{ fontSize: '1.2rem' }}>💎</span>
+          <span style={{ color: '#00ffcc', fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1.2rem' }}>
+            {Math.floor(inventory.aetherium || 0)} AE
+          </span>
+        </div>
         <h1 style={styles.logo}>XAVIER-OS <span style={styles.accent}>AETHERIA</span></h1>
         <p style={styles.status}>SYSTEM STATUS: {isAwakening ? "PROCESSING..." : "ONLINE"}</p>
       </header>
+
+    {/* Toast Notification for Unlocks */}
+    {latestUnlock && (
+      <div style={{...styles.unlockToast, borderColor: latestUnlock.color}}>
+        <h4 style={{margin: '0 0 5px 0', color: latestUnlock.color, textTransform: 'uppercase'}}>✨ {latestUnlock.rarity} Unlocked! ✨</h4>
+        <p style={{margin: 0, fontSize: '0.9rem'}}>Acquired <strong>{latestUnlock.name}</strong></p>
+        <p style={{margin: '5px 0 0 0', fontSize: '0.75rem', opacity: 0.8}}>Book: {latestUnlock.bookSource}</p>
+      </div>
+    )}
+
+    {/* Payment Modal */}
+    {showPaymentModal && (
+      <div style={styles.paymentModalBackdrop}>
+        <div style={styles.paymentModalContent}>
+          <h2 style={{marginTop: 0, color: '#00ffcc'}}>Get Aetherium 💎</h2>
+          <p style={{fontSize: '0.9rem', color: '#bbb', marginBottom: '20px'}}>Purchase <strong>500 Aetherium</strong> for $4.99 to power the Forge.</p>
+          
+          <button style={styles.stripeBtn} onClick={handleStripeCheckout}>Pay with Stripe</button>
+          
+          <div style={styles.divider}>
+            <span style={styles.dividerText}>OR</span>
+          </div>
+
+          <div id="paypal-button-container" style={{ minHeight: '150px' }}></div>
+          
+          <button style={styles.cancelBtn} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+        </div>
+      </div>
+    )}
 
       {/* Glowing Ancient Scripture Background */}
       <div className="ancient-scripture">
@@ -199,7 +411,9 @@ const XavierOS = () => {
                   style={styles.audioPlayer}
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
+              onTimeUpdate={handleTimeUpdate}
                   onEnded={() => {
+                gainXP(50, activeBook); // Bonus XP for chapter completion
                     // Auto-generate next chapter
                     if (storyContent) {
                       awakenBook({...activeBook, chapterNumber: (storyContent.chapterNumber || 1) + 1});
@@ -242,14 +456,130 @@ const XavierOS = () => {
           <option value="sonnet">Sonnet (Paid)</option>
           <option value="google-tts">Google TTS (High Quality)</option>
         </select>
+        <div style={{ marginLeft: '15px', display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setViewMode('all')}
+            style={{...styles.aiSelect, backgroundColor: viewMode === 'all' ? '#d4af37' : '#000', color: viewMode === 'all' ? '#000' : '#ffd700'}}
+          >
+            All
+          </button>
+          <button 
+            onClick={() => setViewMode('favorites')}
+            style={{...styles.aiSelect, backgroundColor: viewMode === 'favorites' ? '#d4af37' : '#000', color: viewMode === 'favorites' ? '#000' : '#ffd700'}}
+          >
+            Favorites ❤️
+          </button>
+          <button 
+            onClick={() => setViewMode('history')}
+            style={{...styles.aiSelect, backgroundColor: viewMode === 'history' ? '#d4af37' : '#000', color: viewMode === 'history' ? '#000' : '#ffd700'}}
+          >
+            History 📖
+          </button>
+        <button 
+          onClick={() => setViewMode('inventory')}
+          style={{...styles.aiSelect, backgroundColor: viewMode === 'inventory' ? '#b026ff' : '#000', color: viewMode === 'inventory' ? '#fff' : '#b026ff'}}
+        >
+          Deck 🃏 (Lvl {inventory.level})
+        </button>
+        </div>
       </div>
 
       <section style={styles.grid}>
-        {bookLibrary.map((book) => (
+      {viewMode === 'inventory' ? (
+        <div style={{ gridColumn: '1 / -1', color: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '20px', background: '#111', borderRadius: '10px', border: '1px solid #333' }}>
+            <h2 style={{ margin: 0, color: '#ffd700' }}>Aetheria Reader Level: {inventory.level}</h2>
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', gap: '20px' }}>
+              <span>XP: {Math.floor(inventory.xp)} / {inventory.level * 100}</span>
+              <span style={{color: '#00ffcc'}}>💎 {Math.floor(inventory.aetherium || 0)}</span>
+            </div>
+          </div>
+
+          {/* The Aether Forge Crafting Element */}
+          <div className="forge-container">
+            <div className="forge-header">
+              <h3 style={{ margin: 0, color: '#fff' }}>⚒️ The Aether Forge</h3>
+              <button onClick={purchaseAetherium} className="buy-btn">+ Buy Aetherium</button>
+            </div>
+            <p style={{ opacity: 0.8, fontSize: '0.9rem' }}>Select 3 Common cards below to forge into 1 Rare. Your rarest cards build your "Aura" and actively shape the events of any audiobook you listen to.</p>
+            <button onClick={executeCrafting} className={`forge-btn ${craftingSlots.length === 3 ? 'ready' : ''}`}>
+              Forge Rare Card (Cost: 100 💎) [{craftingSlots.length}/3]
+            </button>
+          </div>
+
+          <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '10px' }}>Your Tradeable Skill Cards</h3>
+          <div style={styles.cardGrid}>
+            {inventory.cards.length === 0 && <p style={{ opacity: 0.6, fontStyle: 'italic' }}>Keep listening to books to unlock powerful skill cards...</p>}
+            {inventory.cards.map(card => (
+              <div key={card.id} 
+                   className={`trading-card ${card.rarity.toLowerCase()} ${craftingSlots.includes(card.id) ? 'selected-for-craft' : ''}`}
+                   onClick={() => toggleCraftingSelection(card.id, card.rarity)}
+              >
+                <div className="tcg-header">
+                  <span className="tcg-rarity" style={{ color: card.color }}>{card.rarity}</span>
+                </div>
+                <div className="tcg-art">
+                  <div className="tcg-art-inner" style={{ backgroundColor: card.color, color: card.color }}></div>
+                </div>
+                <div className="tcg-body">
+                  <div className="tcg-name">{card.name}</div>
+                  <div className="tcg-origin">Origin: {card.bookSource}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginTop: '40px' }}>Aetherium Ledger</h3>
+          <div style={styles.ledgerContainer}>
+            <table style={styles.ledgerTable}>
+              <thead>
+                <tr>
+                  <th style={styles.ledgerTh}>Date</th>
+                  <th style={styles.ledgerTh}>Description</th>
+                  <th style={{...styles.ledgerTh, textAlign: 'right'}}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(!inventory.aetheriumHistory || inventory.aetheriumHistory.length === 0) ? (
+                  <tr><td colSpan="3" style={{...styles.ledgerTd, textAlign: 'center', opacity: 0.5}}>No transactions yet.</td></tr>
+                ) : (
+                  inventory.aetheriumHistory.map(tx => (
+                    <tr key={tx.id}>
+                      <td style={styles.ledgerTd}>{tx.date}</td>
+                      <td style={styles.ledgerTd}>{tx.desc}</td>
+                      <td style={{...styles.ledgerTd, textAlign: 'right', color: tx.amount > 0 ? '#00ffcc' : '#ff4d4d', fontWeight: 'bold'}}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount} 💎
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+      bookLibrary
+          .filter(book => {
+            if (viewMode === 'favorites') return favorites.includes(book.id);
+            if (viewMode === 'history') return history.includes(book.id);
+            return true;
+          })
+          .sort((a, b) => {
+            if (viewMode === 'history') return history.indexOf(a.id) - history.indexOf(b.id);
+            return 0;
+          })
+          .map((book) => (
           <div key={book.id} className="book-wrapper" onClick={() => awakenBook(book)}>
             <div className={`book ${activeBook?.id === book.id ? 'active' : 'dead'}`}>
               {/* Front Cover */}
               <div className="book-cover">
+                <button 
+                  className="favorite-btn"
+                  onClick={(e) => toggleFavorite(e, book.id)}
+                  title={favorites.includes(book.id) ? "Remove from Favorites" : "Add to Favorites"}
+                >
+                  {favorites.includes(book.id) ? '❤️' : '🤍'}
+                </button>
                 <h3 className="book-title">{book.title}</h3>
                 <div className="character-circle" style={{ backgroundImage: `url(${book.characterImage || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(book.title) + '&background=random&color=fff&rounded=true&size=128'})` }}></div>
               </div>
@@ -272,7 +602,7 @@ const XavierOS = () => {
               </div>
             </div>
           </div>
-        ))}
+    )))}
       </section>
     </div>
   );
@@ -280,11 +610,17 @@ const XavierOS = () => {
 
 const styles = {
   container: { backgroundColor: '#050505', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: '"Segoe UI", Roboto, sans-serif' },
-  header: { textAlign: 'center', marginBottom: '40px', borderBottom: '1px solid #222', paddingBottom: '20px' },
+  header: { textAlign: 'center', marginBottom: '40px', borderBottom: '1px solid #222', paddingBottom: '20px', position: 'relative' },
   logo: { fontSize: '1.8rem', letterSpacing: '6px', margin: 0 },
   status: { fontSize: '0.6rem', color: '#00ff00', letterSpacing: '2px', marginTop: '5px' },
   accent: { color: '#ff3e3e', fontWeight: 'bold' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '25px' },
+  wallet: {
+    position: 'absolute', right: '10px', top: '10px', 
+    display: 'flex', alignItems: 'center', gap: '8px', 
+    background: 'rgba(0, 255, 204, 0.05)', padding: '8px 16px', 
+    borderRadius: '20px', border: '1px solid rgba(0, 255, 204, 0.2)',
+    boxShadow: '0 0 10px rgba(0, 255, 204, 0.1)', cursor: 'pointer', transition: 'all 0.3s ease'
+  },
   
   // Audiovisual Player Styles
   nowPlaying: { 
@@ -389,7 +725,38 @@ const styles = {
     border: '1px solid #ffd700', 
     borderRadius: '5px',
     cursor: 'pointer'
-  }
+  },
+  
+  // Gamification Styles
+  unlockToast: {
+    position: 'fixed', top: '80px', right: '20px', padding: '15px 25px', 
+    backgroundColor: 'rgba(10,10,15,0.95)', borderLeft: '4px solid', 
+    borderRadius: '4px', zIndex: 9999,
+    boxShadow: '0 4px 15px rgba(0,0,0,0.8)', transition: 'all 0.3s ease'
+  },
+  cardGrid: { display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center', padding: '20px 0' },
+  paymentModalBackdrop: {
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+    backdropFilter: 'blur(5px)'
+  },
+  paymentModalContent: {
+    backgroundColor: '#1a1a24', padding: '30px', borderRadius: '12px',
+    width: '350px', textAlign: 'center', border: '1px solid #333',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+  },
+  stripeBtn: {
+    backgroundColor: '#635bff', color: '#fff', padding: '12px', width: '100%',
+    borderRadius: '4px', border: 'none', fontSize: '1rem', fontWeight: 'bold',
+    cursor: 'pointer', transition: '0.2s'
+  },
+  divider: { borderBottom: '1px solid #444', position: 'relative', margin: '20px 0' },
+  dividerText: { position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#1a1a24', padding: '0 10px', color: '#888', fontSize: '0.8rem' },
+  cancelBtn: { backgroundColor: 'transparent', color: '#ff4d4d', padding: '10px', width: '100%', border: '1px solid #ff4d4d', borderRadius: '4px', marginTop: '15px', cursor: 'pointer' },
+  ledgerContainer: { backgroundColor: '#111', borderRadius: '8px', padding: '15px', border: '1px solid #333', overflowX: 'auto' },
+  ledgerTable: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
+  ledgerTh: { padding: '10px', borderBottom: '1px solid #444', color: '#888', fontWeight: 'normal', fontSize: '0.9rem' },
+  ledgerTd: { padding: '10px', borderBottom: '1px solid #222', fontSize: '0.95rem' }
 };
 
 // Required to make the component available to the rest of your app

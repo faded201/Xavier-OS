@@ -309,6 +309,22 @@ h1 {
     box-shadow: 0 0 15px #d4af37, inset 0 0 10px rgba(255,255,255,0.5);
 }
 
+/* Favorite Button */
+.favorite-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    z-index: 20;
+    transition: transform 0.2s ease;
+}
+.favorite-btn:hover {
+    transform: scale(1.2);
+}
+
 /* Book Title */
 .book-title {
   position: relative;
@@ -479,4 +495,177 @@ button:hover {
 .book[data-rarity="legendary"].active {
   border-color: #ffd700;
   box-shadow: 0 0 40px rgba(255, 215, 0, 0.5), inset 0 0 25px rgba(0,0,0,1);
+}
+
+/* =========================
+   🃏 TRADING CARD STYLES (DECK VIEW)
+========================= */
+.trading-card {
+    position: relative;
+    width: 170px;
+    height: 240px;
+    padding: 12px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #1a1a24, #0a0a0f);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    border: 2px solid #333;
+}
+
+.trading-card:hover {
+    transform: translateY(-15px) scale(1.05) rotateY(5deg);
+}
+
+/* Rarity Color Accents & Glows */
+.trading-card.mythical { border-color: #ff4500; }
+.trading-card.legendary { border-color: #ffd700; }
+.trading-card.epic { border-color: #b026ff; }
+.trading-card.rare { border-color: #0070dd; }
+.trading-card.common { border-color: #a0a0a0; }
+
+.trading-card.mythical:hover { box-shadow: 0 15px 30px rgba(255, 69, 0, 0.3), 0 0 20px rgba(255, 69, 0, 0.6); }
+.trading-card.legendary:hover { box-shadow: 0 15px 30px rgba(255, 215, 0, 0.3), 0 0 20px rgba(255, 215, 0, 0.6); }
+.trading-card.epic:hover { box-shadow: 0 15px 30px rgba(176, 38, 255, 0.3), 0 0 20px rgba(176, 38, 255, 0.6); }
+.trading-card.rare:hover { box-shadow: 0 15px 30px rgba(0, 112, 221, 0.3), 0 0 20px rgba(0, 112, 221, 0.6); }
+.trading-card.common:hover { box-shadow: 0 15px 30px rgba(160, 160, 160, 0.3), 0 0 15px rgba(160, 160, 160, 0.6); }
+
+/* Holographic Foil Overlay */
+.trading-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: linear-gradient(
+        125deg, 
+        transparent 20%, 
+        rgba(255, 255, 255, 0.5) 25%, 
+        rgba(255, 215, 0, 0.4) 35%, 
+        rgba(255, 105, 180, 0.4) 45%, 
+        rgba(0, 255, 255, 0.4) 55%, 
+        transparent 70%
+    );
+    background-size: 300% 300%;
+    background-position: 100% 100%;
+    mix-blend-mode: color-dodge;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.trading-card:hover::before {
+    opacity: 1;
+    animation: holo-sweep 3s infinite linear;
+}
+
+@keyframes holo-sweep {
+    0% { background-position: 100% 100%; }
+    50% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+/* Inner Card Layout */
+.tcg-header {
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    z-index: 2;
+}
+
+.tcg-art {
+    flex: 1;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+    overflow: hidden;
+    z-index: 2;
+    background: url('https://www.transparenttextures.com/patterns/stardust.png');
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tcg-art-inner {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 0 20px currentColor;
+    opacity: 0.9;
+    animation: float-gem 4s infinite ease-in-out;
+}
+
+@keyframes float-gem {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.1); }
+}
+
+.tcg-body {
+    text-align: center;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    padding: 5px;
+}
+
+.tcg-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #fff;
+    font-family: 'Cinzel', serif;
+}
+
+.tcg-origin {
+    font-size: 0.65rem;
+    color: #bbb;
+    font-family: 'Inter', sans-serif;
+}
+
+/* =========================
+   ⚒️ FORGE & CRAFTING UI
+========================= */
+.forge-container {
+    background: linear-gradient(180deg, rgba(20, 30, 45, 0.9), rgba(10, 15, 20, 0.9));
+    border: 1px solid #0070dd;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: inset 0 0 20px rgba(0, 112, 221, 0.2);
+}
+.forge-header { display: flex; justifyContent: space-between; align-items: center; margin-bottom: 10px; }
+.forge-btn, .buy-btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 15px; }
+.buy-btn { background: linear-gradient(45deg, #00ffcc, #00b399); color: #000; box-shadow: 0 0 10px rgba(0, 255, 204, 0.5); margin-top: 0; }
+.buy-btn:hover { transform: scale(1.05); }
+.forge-btn { background: #333; color: #888; width: 100%; pointer-events: none; }
+.forge-btn.ready { background: linear-gradient(45deg, #0070dd, #b026ff); color: #fff; box-shadow: 0 0 20px rgba(0, 112, 221, 0.6); pointer-events: auto; }
+.forge-btn.ready:hover { filter: brightness(1.2); }
+
+/* Selection Glow for Crafting */
+.trading-card.common { transition: all 0.2s ease; }
+.trading-card.selected-for-craft {
+    transform: translateY(-15px) scale(1.05) rotateY(5deg);
+    box-shadow: 0 0 25px #00ffcc, 0 5px 15px rgba(0,0,0,0.6);
+    border-color: #00ffcc;
+}
+.trading-card.selected-for-craft::after {
+    content: "✓";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #00ffcc;
+    color: #000;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 20;
 }
