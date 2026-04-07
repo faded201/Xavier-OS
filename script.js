@@ -311,7 +311,6 @@ const XavierOS = () => {
                   <div key={book.id} className="book-card" onClick={() => { setSelectedBook(book); setViewMode('detail'); }}>
                     <div className="book-cover-wrapper">
                       <div className="corner-ornament top-left"></div>
-                      <div className="corner-ornament top-right"></div>
                       <div className="corner-ornament bottom-left"></div>
                       <div className="corner-ornament bottom-right"></div>
                       <div className="endless-badge">✦ ENDLESS</div>
@@ -325,7 +324,8 @@ const XavierOS = () => {
                       }}></div>
 
                       <div className="cover-image-container">
-                        <img className="cover-image" src={`https://image.pollinations.ai/prompt/${encodeURIComponent(book.cover || book.title)}?width=400&height=600&seed=${book.id}&nologo=true`} alt={book.title} />
+                        {/* Decoded first to prevent double-encoding the database strings! */}
+                        <img className="cover-image" src={`https://image.pollinations.ai/prompt/${encodeURIComponent(decodeURIComponent(book.cover || book.title))}?width=400&height=600&seed=${book.id}&nologo=true`} alt={book.title} />
                       </div>
                     </div>
                     <div className="book-info">
@@ -348,12 +348,20 @@ const XavierOS = () => {
               <div className="book-detail-left">
                 <div className="book-cover-large">
                   <div className="corner-ornament top-left"></div>
-                  <div className="corner-ornament top-right"></div>
                   <div className="corner-ornament bottom-left"></div>
                   <div className="corner-ornament bottom-right"></div>
                   <div className="endless-badge">✦ ENDLESS</div>
+                  
+                  {/* Character Circle for Large Cover */}
+                  <div className="character-circle" style={{
+                      position: 'absolute', top: '20px', right: '20px', width: '70px', height: '70px',
+                      borderRadius: '50%', border: '3px solid var(--gold-primary)', zIndex: 10,
+                      backgroundImage: `url('https://image.pollinations.ai/prompt/portrait%20of%20protagonist%20from%20${encodeURIComponent(selectedBook.title)}?width=200&height=200&nologo=true')`,
+                      backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 0 15px rgba(0,0,0,0.8)'
+                  }}></div>
+                  
                   <div className="cover-image-container">
-                    <img className="cover-image" src={`https://image.pollinations.ai/prompt/${encodeURIComponent(selectedBook.cover || selectedBook.title)}?width=400&height=600&seed=${selectedBook.id}&nologo=true`} alt={selectedBook.title} />
+                    <img className="cover-image" src={`https://image.pollinations.ai/prompt/${encodeURIComponent(decodeURIComponent(selectedBook.cover || selectedBook.title))}?width=400&height=600&seed=${selectedBook.id}&nologo=true`} alt={selectedBook.title} />
                   </div>
                 </div>
               </div>
