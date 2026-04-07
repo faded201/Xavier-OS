@@ -44,6 +44,7 @@ const XavierOS = () => {
   const audioRef = useRef(null);
   const bgmRef = useRef(null);
   const listeningTimer = useRef(0);
+  const errorCount = useRef(0);
 
   // Set background music volume very low so it doesn't overpower the voice
   useEffect(() => {
@@ -233,6 +234,7 @@ const XavierOS = () => {
     setCurrentImage(null);
     setStoryContent(null);
     setProgress(0);
+    errorCount.current = 0;
 
     try {
       const weights = { Mythical: 5, Legendary: 4, Epic: 3, Rare: 2, Common: 1 };
@@ -300,6 +302,7 @@ const XavierOS = () => {
   };
 
   const handleTimeUpdate = () => {
+    errorCount.current = 0; // Successfully playing audio, reset error tracker
     listeningTimer.current += 1;
     if (listeningTimer.current > 120) {
       listeningTimer.current = 0;
@@ -330,6 +333,17 @@ const XavierOS = () => {
        gainXP(50);
        awakenBook(selectedBook, currentEpisode + 1);
      }
+  };
+
+  const handleAudioError = () => {
+     errorCount.current += 1;
+     if (errorCount.current >= 3) {
+       setError("Voice API connection lost or rate-limited. Playback paused.");
+       setIsPlaying(false);
+       if (bgmRef.current) bgmRef.current.pause();
+       return;
+     }
+     handleAudioEnded(); // Gracefully skip to the next sentence
   };
 
   return (
@@ -595,7 +609,17 @@ const XavierOS = () => {
               <div className="player-right">
                 <h2 className="player-chapter-title">{storyContent?.chapterTitle || 'Loading...'}</h2>
                 <div className="player-text-content">
-                  {error ? <p style={{color: 'red'}}>{error}</p> : <p>{storyContent?.chapter || ''}</p>}
+                {error ? (
+                  <p style={{color: 'red'}}>{error}</p>
+                ) : (
+                  <p style={{ lineHeight: '1.8' }}>
+                    {storyContent?.chunks ? storyContent.chunks.map((chunk, idx) => (
+                      <span key={idx} style={idx === playlistIndex ? { backgroundColor: 'rgba(0, 255, 204, 0.25)', color: '#fff', padding: '2px 4px', borderRadius: '4px', transition: 'background-color 0.3s ease' } : { padding: '2px 4px', transition: 'background-color 0.3s ease' }}>
+                        {chunk}{' '}
+                      </span>
+                    )) : (storyContent?.chapter || '')}
+                  </p>
+                )}
                 </div>
               </div>
             </div>
@@ -625,7 +649,7 @@ const XavierOS = () => {
               {audioUrl && (
                 <>
                   <audio ref={bgmRef} src="https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3" loop style={{ display: 'none' }}></audio>
-              <audio ref={audioRef} src={audioUrl} autoPlay onPlay={() => { setIsPlaying(true); if(bgmRef.current) bgmRef.current.play(); }} onPause={() => { setIsPlaying(false); if(bgmRef.current) bgmRef.current.pause(); }} onTimeUpdate={handleTimeUpdate} onEnded={handleAudioEnded} onError={handleAudioEnded} style={{ display: 'none' }}></audio>
+              <audio ref={audioRef} src={audioUrl} autoPlay onPlay={() => { setIsPlaying(true); if(bgmRef.current) bgmRef.current.play(); }} onPause={() => { setIsPlaying(false); if(bgmRef.current) bgmRef.current.pause(); }} onTimeUpdate={handleTimeUpdate} onEnded={handleAudioEnded} onError={handleAudioError} style={{ display: 'none' }}></audio>
                 </>
               )}
             </div>
