@@ -246,33 +246,58 @@ const XavierOS = () => {
 
     setAudioUrl(url);
     
-    // Set up audio element with proper loading
+    // Set up audio element with proper loading - Fix race condition
     if (audioRef.current) {
-      audioRef.current.src = url;
+      // Reset the audio element to clear any previous state
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       
-      // Handler for when metadata loads
-      const onCanPlayThrough = () => {
-        console.log('Audio ready to play:', audioRef.current?.duration);
-        audioRef.current?.removeEventListener('canplaythrough', onCanPlayThrough);
+      // Create a handler that will definitely fire
+      const handleAudioReady = async () => {
+        console.log('🎵 Audio ready to play - Duration:', audioRef.current?.duration, 'seconds');
+        audioRef.current?.removeEventListener('canplaythrough', handleAudioReady);
+        audioRef.current?.removeEventListener('canplay', handleAudioReady);
         
-        // Play audio and update state AFTER play starts
+        // Play audio with error handling
         if (audioRef.current) {
-          audioRef.current.play().then(() => {
-            console.log('Audio playback started');
+          try {
+            console.log('🎵 Attempting to play audio...');
+            await audioRef.current.play();
+            console.log('🎵 Audio playback started successfully');
             setIsPlaying(true);
             if(bgmRef.current) {
               bgmRef.current.volume = 0.08;
               bgmRef.current.play();
             }
-          }).catch(err => {
-            console.error('Audio play error:', err);
+          } catch(err) {
+            console.error('❌ Audio play error:', err);
             handleAudioError(err);
-          });
+          }
         }
       };
       
-      audioRef.current.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
-      audioRef.current.load();
+      // Listen for both canplay and canplaythrough to increase chance of catching the event
+      audioRef.current.addEventListener('canplaythrough', handleAudioReady);
+      audioRef.current.addEventListener('canplay', handleAudioReady);
+      
+      // Set source and load
+      audioRef.current.src = url;
+      console.log('🎵 Loading audio from:', url);
+      
+      // Try to load the audio
+      try {
+        audioRef.current.load();
+      } catch(e) {
+        console.error('❌ Error calling load():', e);
+      }
+      
+      // Also try immediate play in case it's already loaded (shouldn't happen but just in case)
+      setTimeout(() => {
+        if (audioRef.current && audioRef.current.readyState >= 2 && !audioRef.current.playing) {
+          console.log('🎵 Audio ready via setTimeout check');
+          handleAudioReady();
+        }
+      }, 100);
     }
     
     return url;
@@ -280,6 +305,7 @@ const XavierOS = () => {
 
   // Player & Generation Logic
   const awakenBook = async (book, episodeNum = 1) => {
+    console.log('🎬 AWAIT BOOK STARTED:', book.title, 'Episode', episodeNum);
     setError(null);
     setIsAwakening(true);
     setSelectedBook(book);
@@ -303,6 +329,7 @@ const XavierOS = () => {
 
       try {
         logApiCall(); // Log AI Story generation request
+        console.log('🎬 Calling /api/generate...');
         const aiRes = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -318,12 +345,13 @@ const XavierOS = () => {
           generatedStoryText = aiData.chapter;
           generatedTitle = aiData.chapterTitle;
           characterMemory = aiData.characterMemory; // Store character memory
+          console.log('✅ API returned:', generatedStoryText.substring(0, 50), '...');
         }
         else {
           throw new Error("API Route not ok");
         }
       } catch(err) {
-        console.error("AI Generation failed, using rich storyline fallback.");
+        console.error("❌ AI Generation failed, using fallback:", err);
         // Provide a rich, cinematic storyline so it reads like a real audiobook (Pocket FM style)
         generatedTitle = `Chapter ${episodeNum}: The Awakening`;
         generatedStoryText = `The air was thick and heavy in the ancient chamber. Shadows clung to the stone walls, retreating only when the glowing runes flared to life. ${getProtagonist(book)} stood in the center of the room, breathing deeply, feeling the surge of a dormant power awakening within. This was the moment foretold in the forgotten archives. "It is time," a voice echoed from the abyss, resonating with a celestial frequency. The ground trembled, and a blinding light erupted from the artifact resting on the pedestal. Everything ${getProtagonist(book)} knew was about to change. The true journey, filled with unimaginable perils and god-like adversaries, had finally begun.`;
@@ -361,6 +389,8 @@ const XavierOS = () => {
       });
       if (curr.trim()) chunks.push(curr.trim());
 
+      console.log('📖 Split into', chunks.length, 'chunks');
+
       setStoryContent({
         chapterTitle: generatedTitle,
         chapterNumber: episodeNum,
@@ -375,8 +405,10 @@ const XavierOS = () => {
       setPlaylistIndex(0);
       setIsAwakening(false);
       setIsPlaying(false); // Don't auto-play, let playChunk handle it
+      console.log('🎬 Calling playChunk with 0 index...');
       playChunk(chunks, 0, book, characterMemory);
     } catch (err) {
+      console.error('❌ awakenBook error:', err);
       setError("Failed to awaken book.");
     } finally {
       setIsAwakening(false);

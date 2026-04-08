@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Audio Playback Test</title>
+  <style>
+    body { background: #1a1a24; color: #fff; font-family: Arial; padding: 20px; }
+    button { padding: 10px 20px; margin: 10px; background: #00ffcc; color: #000; border: none; cursor: pointer; }
+    .log { background: #111; padding: 10px; margin: 10px 0; border-left: 2px solid #00ffcc; max-height: 300px; overflow-y: auto; }
+    .error { color: #ff4d4d; }
+    .success { color: #00ffcc; }
+  </style>
+</head>
+<body>
+  <h1>Audio Playback Diagnostic</h1>
+  <button onclick="testBackend()">Test Backend (Generate)</button>
+  <button onclick="testTTS()">Test TTS Endpoint</button>
+  <button onclick="testAudioPlay()">Test Audio Playback</button>
+  <button onclick="clearLog()">Clear Log</button>
+  
+  <div id="log" class="log"></div>
+  
+  <audio id="testAudio" style="display: none;"></audio>
+  
+  <script>
+    const audioEl = document.getElementById('testAudio');
+    const logDiv = document.getElementById('log');
+    
+    function log(msg, isError = false) {
+      const p = document.createElement('p');
+      p.style.margin = '5px 0';
+      p.className = isError ? 'error' : 'success';
+      p.textContent = new Date().toLocaleTimeString() + ': ' + msg;
+      logDiv.appendChild(p);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function clearLog() {
+      logDiv.innerHTML = '';
+    }
+    
+    async function testBackend() {
+      try {
+        log('Testing /api/generate...');
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'test' })
+        });
+        log('Status: ' + res.status);
+        const data = await res.json();
+        log('Got chapter: ' + data.chapter.substring(0, 50) + '...');
+        if (data.chunks) log('Got ' + data.chunks.length + ' chunks');
+      } catch (e) {
+        log('Error: ' + e.message, true);
+      }
+    }
+    
+    async function testTTS() {
+      try {
+        log('Testing /api/tts...');
+        const text = 'Hello world this is a test';
+        const res = await fetch('/api/tts?text=' + encodeURIComponent(text));
+        log('Status: ' + res.status);
+        log('Content-Type: ' + res.headers.get('Content-Type'));
+        const blob = await res.blob();
+        log('Got audio blob: ' + blob.size + ' bytes');
+        
+        // Try to play it
+        const url = URL.createObjectURL(blob);
+        audioEl.src = url;
+        audioEl.play().then(() => {
+          log('Audio playing!');
+        }).catch(e => {
+          log('Play failed: ' + e.message, true);
+        });
+      } catch (e) {
+        log('Error: ' + e.message, true);
+      }
+    }
+    
+    async function testAudioPlay() {
+      try {
+        log('Testing direct audio playback...');
+        const url = '/api/tts?text=This%20is%20a%20stream%20test';
+        audioEl.src = url;
+        
+        audioEl.onloadstart = () => log('Audio: loadstart');
+        audioEl.onloadeddata = () => log('Audio: loadeddata');
+        audioEl.oncanplay = () => log('Audio: canplay');
+        audioEl.oncanplaythrough = () => log('Audio: canplaythrough');
+        audioEl.onplay = () => log('Audio: onplay');
+        audioEl.onplaying = () => log('Audio: onplaying');
+        audioEl.onerror = (e) => log('Audio error: ' + audioEl.error?.message, true);
+        
+        audioEl.load();
+        log('Called load()');
+        
+        setTimeout(() => {
+          log('Attempting play()...');
+          audioEl.play().then(() => {
+            log('Play succeeded');
+          }).catch(e => {
+            log('Play failed: ' + e.name + ' - ' + e.message, true);
+          });
+        }, 500);
+      } catch (e) {
+        log('Error: ' + e.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
