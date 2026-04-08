@@ -245,6 +245,22 @@ const XavierOS = () => {
     }
 
     setAudioUrl(url);
+    
+    // Ensure audio plays after URL is set
+    if (audioRef.current) {
+      audioRef.current.src = url;
+      audioRef.current.load();
+      // Small delay to ensure audio element is ready
+      setTimeout(() => {
+        if (audioRef.current && isPlaying) {
+          audioRef.current.play().catch(err => {
+            console.error('Audio play error:', err);
+            handleAudioError(err);
+          });
+        }
+      }, 100);
+    }
+    
     return url;
   };
 
@@ -344,6 +360,7 @@ const XavierOS = () => {
 
       setPlaylistIndex(0);
       setIsAwakening(false);
+      setIsPlaying(true); // Start playback immediately
       playChunk(chunks, 0, book, characterMemory);
     } catch (err) {
       setError("Failed to awaken book.");
@@ -369,7 +386,10 @@ const XavierOS = () => {
       setIsPlaying(false);
     } else {
       errorCount.current = 0; // Reset error tracker on manual play
-      audioRef.current.play();
+      audioRef.current.play().catch(err => {
+        console.error('Play failed:', err);
+        handleAudioError(err);
+      });
       if(bgmRef.current) bgmRef.current.play();
       setIsPlaying(true);
     }
@@ -392,15 +412,18 @@ const XavierOS = () => {
 
   const handleAudioError = (e) => {
     errorCount.current += 1;
-    console.error('Audio error:', e);
-    if (errorCount.current >= 3) {
-      setError("Voice API connection lost or rate-limited. Playback paused.");
+    console.error('Audio error (attempt ' + errorCount.current + '):', e);
+    if (errorCount.current >= 5) { // Increased threshold from 3 to 5
+      setError("Voice API connection lost or rate-limited. Try again or select next chapter.");
       setIsPlaying(false);
       if (audioRef.current) audioRef.current.pause();
       if (bgmRef.current) bgmRef.current.pause();
       return;
     }
-    handleAudioEnded(); // Gracefully skip to the next sentence
+    // Skip to next chunk instead of stopping completely
+    if (storyContent && storyContent.chunks) {
+      handleAudioEnded();
+    }
   };
 
   return (

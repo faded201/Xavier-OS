@@ -88,11 +88,15 @@ app.get('/api/tts', async (req, res) => {
 
     const audioBuffer = await response.arrayBuffer();
     console.log('Audio buffer size:', audioBuffer.byteLength);
+    
     res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(Buffer.from(audioBuffer));
   } catch (error) {
     console.error('TTS Proxy Error:', error);
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(500).json({ error: 'TTS generation failed', details: error.message });
   }
 });
@@ -100,6 +104,7 @@ app.get('/api/tts', async (req, res) => {
 // Image Proxy Route to avoid CORS issues
 app.get('/api/image', async (req, res) => {
   try {
+    console.log('Image request received:', req.query);
     const prompt = req.query.prompt;
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt parameter required' });
@@ -107,20 +112,27 @@ app.get('/api/image', async (req, res) => {
 
     // Use pollinations.ai for image generation
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true&seed=${req.query.seed || 0}`;
+    console.log('Fetching image from:', imageUrl.substring(0, 100) + '...');
 
     const response = await fetch(imageUrl);
 
+    console.log('Image response status:', response.status);
     if (!response.ok) {
       throw new Error(`Image request failed: ${response.status}`);
     }
 
     const imageBuffer = await response.arrayBuffer();
+    console.log('Image buffer size:', imageBuffer.byteLength);
+    
     res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(Buffer.from(imageBuffer));
   } catch (error) {
     console.error('Image Proxy Error:', error);
-    res.status(500).json({ error: 'Image generation failed' });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(500).json({ error: 'Image generation failed', details: error.message });
   }
 });
 
