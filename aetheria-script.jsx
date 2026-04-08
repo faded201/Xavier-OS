@@ -204,7 +204,8 @@ const XavierOS = () => {
     setProgress((index / chunksArray.length) * 100);
 
     // Generate images that actually follow the storyline based on the text chunk!
-    const imagePrompt = `Epic cinematic scene from ${bookData.title}, featuring ${getProtagonist(bookData)}. Action happening: ${chunkText.substring(0, 150)}. Highly detailed digital art, dramatic lighting`;
+    const safeText = chunkText.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 150);
+    const imagePrompt = `Epic cinematic scene from ${bookData.title}, featuring ${getProtagonist(bookData)}. Action happening: ${safeText}. Highly detailed digital art, dramatic lighting`;
     setCurrentImage(`https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=600&nologo=true`);
     logApiCall(); // Log image generation request
 
@@ -275,24 +276,35 @@ const XavierOS = () => {
           generatedStoryText = aiData.chapter;
           generatedTitle = aiData.chapterTitle;
         }
+        else {
+          throw new Error("API Route not ok");
+        }
       } catch(err) {
-        console.error("AI Generation failed, using fallback.");
+        console.error("AI Generation failed, using rich storyline fallback.");
+        // Provide a rich, cinematic storyline so it reads like a real audiobook (Pocket FM style)
+        generatedTitle = `Chapter ${episodeNum}: The Awakening`;
+        generatedStoryText = `The air was thick and heavy in the ancient chamber. Shadows clung to the stone walls, retreating only when the glowing runes flared to life. ${getProtagonist(book)} stood in the center of the room, breathing deeply, feeling the surge of a dormant power awakening within. This was the moment foretold in the forgotten archives. "It is time," a voice echoed from the abyss, resonating with a celestial frequency. The ground trembled, and a blinding light erupted from the artifact resting on the pedestal. Everything ${getProtagonist(book)} knew was about to change. The true journey, filled with unimaginable perils and god-like adversaries, had finally begun.`;
       }
 
-      // Strip AI markdown formatting and chunk by sentence for limits and storyline syncing
+      // Strip AI markdown formatting but preserve punctuation
       const cleanSpokenText = generatedStoryText.replace(/[*_#`~]/g, '').replace(/\n+/g, ' ').trim();
-      const sentences = cleanSpokenText.match(/[^.!?]+[.!?]+/g) || [cleanSpokenText];
+      
+      // Safely split into sentences cross-browser without destroying quotes
+      const sentences = cleanSpokenText.replace(/([.!?])\s+/g, "$1|").split("|");
       const chunks = [];
       let curr = "";
       sentences.forEach(s => {
-        if ((curr + s).length > 180) {
+        const sentence = s.trim();
+        if (!sentence) return;
+        
+        if ((curr + " " + sentence).length > 180 && curr.length > 0) {
           chunks.push(curr.trim());
-          curr = s;
+          curr = sentence;
         } else {
-          curr += " " + s;
+          curr = curr ? curr + " " + sentence : sentence;
         }
       });
-      if (curr) chunks.push(curr.trim());
+      if (curr.trim()) chunks.push(curr.trim());
 
       setStoryContent({
          chapterTitle: generatedTitle,
@@ -468,7 +480,7 @@ const XavierOS = () => {
                 <label>Active Voice Engine</label>
                 <select value={activeTTS} onChange={e => setActiveTTS(e.target.value)}>
                   <option value="streamelements">StreamElements (Free)</option>
-                  <option value="google">Google Cloud TTS (Paid)</option>
+                  <option value="google">Google Cloud TTS (Journey AI - Best)</option>
                   <option value="noiz">Noiz.ai (Paid)</option>
                 </select>
               </div>
@@ -534,32 +546,22 @@ const XavierOS = () => {
             </section>
 
             <section className="books-grid-section">
-              <div className="books-grid">
+              <div className="books-grid-ancient">
                 {filteredBooks.map(book => (
-                  <div key={book.id} className="book-card" onClick={() => { setSelectedBook(book); setViewMode('detail'); }}>
-                    <div className="book-cover-wrapper">
-                      <div className="corner-ornament top-left"></div>
-                      <div className="corner-ornament bottom-left"></div>
-                      <div className="corner-ornament bottom-right"></div>
-                      <div className="endless-badge">✦ ENDLESS</div>
-                      
-                      {/* Character Circle (AI Generated Protagonist) */}
-                      <div className="character-circle" style={{
-                          position: 'absolute', top: '15px', right: '15px', width: '50px', height: '50px',
-                          borderRadius: '50%', border: '2px solid var(--gold-primary)', zIndex: 10,
-                          backgroundImage: `url('https://image.pollinations.ai/prompt/detailed%20face%20portrait%20of%20${encodeURIComponent(getProtagonist(book))}%20from%20${encodeURIComponent(book.title)}?width=150&height=150&nologo=true')`,
-                          backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 0 10px rgba(0,0,0,0.8)'
-                      }}></div>
-
-                      <div className="cover-image-container">
-                        {/* Decoded first to prevent double-encoding the database strings! */}
-                        <img className="cover-image" src={`https://image.pollinations.ai/prompt/${encodeURIComponent(decodeURIComponent(book.cover || book.title))}?width=400&height=600&seed=${book.id}&nologo=true`} alt={book.title} />
+                  <div key={book.id} className="ancient-book-card" onClick={() => { setSelectedBook(book); setViewMode('detail'); }}>
+                    <div className="book-3d-wrapper">
+                      <div className="book-spine-visual"></div>
+                      <div className="book-cover-ancient" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+                        <img src={`https://image.pollinations.ai/prompt/Ancient%20ornate%20leather%20bound%20magic%20book%20cover%20featuring%20${book.cover || encodeURIComponent(book.title)}?width=300&height=450&nologo=true`} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <div className="endless-badge" style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>✦ ENDLESS ✦</div>
                       </div>
+                      <div className="book-pages-edge"></div>
                     </div>
-                    <div className="book-info">
-                      <h3 className="book-title">{book.title}</h3>
-                      <p className="book-author">{book.author || 'AI Generated'}</p>
-                      <span className="book-genre">{book.genre}</span>
+                    
+                    <div className="book-info-ancient">
+                      <h3 className="book-title-ancient">{book.title}</h3>
+                      <p className="book-author" style={{margin: '0', fontSize: '13px', color: 'var(--text-secondary)'}}>{book.author || 'AI Generated'}</p>
+                      <p className="book-genre-ancient" style={{marginTop: '8px'}}>{book.genre}</p>
                     </div>
                   </div>
                 ))}
@@ -574,22 +576,13 @@ const XavierOS = () => {
             <button className="back-btn" onClick={() => setViewMode('home')}><span className="back-arrow">←</span></button>
             <div className="book-detail-content">
               <div className="book-detail-left">
-                <div className="book-cover-large">
-                  <div className="corner-ornament top-left"></div>
-                  <div className="corner-ornament bottom-left"></div>
-                  <div className="corner-ornament bottom-right"></div>
-                  <div className="endless-badge">✦ ENDLESS</div>
-                  
-                  {/* Character Circle for Large Cover */}
-                  <div className="character-circle" style={{
-                      position: 'absolute', top: '20px', right: '20px', width: '70px', height: '70px',
-                      borderRadius: '50%', border: '3px solid var(--gold-primary)', zIndex: 10,
-                      backgroundImage: `url('https://image.pollinations.ai/prompt/detailed%20face%20portrait%20of%20${encodeURIComponent(getProtagonist(selectedBook))}%20from%20${encodeURIComponent(selectedBook.title)}?width=200&height=200&nologo=true')`,
-                      backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 0 15px rgba(0,0,0,0.8)'
-                  }}></div>
-                  
-                  <div className="cover-image-container">
-                    <img className="cover-image" src={`https://image.pollinations.ai/prompt/${encodeURIComponent(decodeURIComponent(selectedBook.cover || selectedBook.title))}?width=400&height=600&seed=${selectedBook.id}&nologo=true`} alt={selectedBook.title} />
+                <div className="ancient-book-card large">
+                  <div className="book-3d-wrapper">
+                    <div className="book-spine-visual"></div>
+                    <div className="book-cover-ancient" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+                      <img src={`https://image.pollinations.ai/prompt/Ancient%20ornate%20leather%20bound%20magic%20book%20cover%20featuring%20${selectedBook.cover || encodeURIComponent(selectedBook.title)}?width=400&height=600&nologo=true`} alt={selectedBook.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    <div className="book-pages-edge"></div>
                   </div>
                 </div>
               </div>
