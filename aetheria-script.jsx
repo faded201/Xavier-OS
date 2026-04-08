@@ -218,13 +218,13 @@ const XavierOS = () => {
     const newImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=600&nologo=true&seed=${index}`;
     setCurrentImage(newImageUrl);
 
-    // Audio TTS Fetch - StreamElements (most reliable free option)
-    const ttsEngine = localStorage.getItem('active_tts') || 'streamelements';
+    // Audio TTS Fetch - Google Translate (free, no API key required)
+    const ttsEngine = localStorage.getItem('active_tts') || 'google_translate';
     const googleKey = localStorage.getItem('google_api_key');
     const noizKey = localStorage.getItem('noiz_api_key');
 
-    // Default to StreamElements Brian voice (most reliable)
-    let url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(chunkText)}`;
+    // Default to Google Translate TTS (free and reliable)
+    let url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(chunkText)}&tl=en`;
 
     if (ttsEngine === 'google' && googleKey) {
       try {
@@ -234,6 +234,9 @@ const XavierOS = () => {
         });
         if (res.ok) { const d = await res.json(); url = "data:audio/mp3;base64," + d.audioContent; }
       } catch(e) { console.error('Google TTS error:', e); }
+    } else if (ttsEngine === 'streamelements') {
+      // Fallback to StreamElements if explicitly selected (requires API key)
+      url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(chunkText)}`;
     } else if (ttsEngine === 'noiz' && noizKey) {
       try {
         const res = await fetch('https://api.noiz.ai/v1/audio/speech', {
