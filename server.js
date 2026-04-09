@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createRequire } from 'module';
+import { getStoryTemplate } from './book-story-templates.js';
 
 const require = createRequire(import.meta.url);
 const app = express();
@@ -13,8 +14,14 @@ app.use(express.json());
 // Import the API handler (we'll need to compile the TS first)
 const generateHandler = async (req, res) => {
   try {
-    // For now, return a response with chunks for proper playback
-    const chapterText = "The story begins with a mysterious awakening. Quinn Talen stood in the ancient chamber, feeling the surge of dormant power within. Shadows clung to the stone walls as glowing runes flared to life. This was the moment foretold in the forgotten archives. 'It is time,' a voice echoed from the abyss. The ground trembled, and a blinding light erupted from the artifact on the pedestal. Everything Quinn knew was about to change. The true journey, filled with unimaginable perils and god-like adversaries, had finally begun.";
+    // Get bookId from request body or query
+    const bookId = req.body?.bookId || req.query?.bookId || 'my-vampire-system';
+    
+    // Get the unique story template for this book
+    const template = getStoryTemplate(bookId);
+    
+    // Use the template's opening as the chapter text
+    const chapterText = template.opening;
 
     // Split into chunks for sequential playback
     const sentences = chapterText.replace(/([.!?])\s+/g, "$1|").split("|");
@@ -35,23 +42,30 @@ const generateHandler = async (req, res) => {
 
     res.json({
       chapter: chapterText,
-      chapterTitle: "Chapter 1: The Awakening",
+      chapterTitle: "Chapter 1: The Beginning",
       wordCount: chapterText.split(" ").length,
       estimatedReadTime: Math.ceil(chapterText.split(" ").length / 200),
-      protagonist: "Quinn Talen",
-      series: "My Vampire System",
+      protagonist: template.protagonist,
+      setting: template.setting,
+      genre: template.genre,
+      series: template.series || bookId,
       chunks: chunks, // Add chunks for proper playback
       characterMemory: {
         traits: {
           personality: "determined, resourceful, evolving",
-          appearance: "pale skin, sharp features, red eyes",
-          goals: "power, survival, dominance"
+          appearance: `${template.protagonist} from ${template.setting}`,
+          goals: `overcome challenges in ${template.genre} world`
         },
         relationships: {},
-        events: ["Awakened with vampire powers"],
-        worldState: { timeOfDay: "Night", location: "Modern Earth" }
+        events: [template.opening.split(".")[0]], // First sentence as opening event
+        worldState: { 
+          timeOfDay: "Present", 
+          location: template.setting,
+          genre: template.genre
+        }
       },
-      aiModelUsed: "fallback"
+      bookId: bookId,
+      aiModelUsed: "template-fallback"
     });
   } catch (error) {
     console.error('API Error:', error);

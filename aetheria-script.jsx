@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
+import { getStoryTemplate } from './book-story-templates.js';
 
 const XavierOS = () => {
   // --- UI STATE ---
@@ -136,13 +137,13 @@ const XavierOS = () => {
 
   // Helper to fetch actual protagonist names for the portrait circles
   const getProtagonist = (book) => {
-    const chars = {
-      'my-vampire-system': 'Quinn Talen', 'shadow-monarch': 'Sung Jin-Woo', 'solo-leveling': 'Sung Jin-Woo',
-      'my-dragonic-system': 'Aeron Draketh', 'birth-demonic-sword': 'Cain Valdris', 'legendary-beast-tamer': 'Kael Wildheart',
-      'heavenly-thief': 'Zephyr Nightshade', 'nano-machine': 'Cheon Yeo-Woon', 'second-life-ranker': 'Yeon-woo Cha',
-      'beginning-after-end': 'Arthur Leywin', 'omniscient-reader': 'Kim Dokja', 'overgeared': 'Grid'
-    };
-    return chars[book.id] || 'epic fantasy protagonist';
+    try {
+      const template = getStoryTemplate(book.id);
+      return template.protagonist || 'epic fantasy protagonist';
+    } catch (e) {
+      console.warn(`No template found for ${book.id}, using default protagonist`);
+      return 'epic fantasy protagonist';
+    }
   };
 
   // Sync Inventory
@@ -525,20 +526,35 @@ const XavierOS = () => {
         }
       } catch(err) {
         console.error("❌ AI Generation failed, using fallback:", err);
-        // Provide a rich, cinematic storyline so it reads like a real audiobook (Pocket FM style)
-        generatedTitle = `Chapter ${episodeNum}: The Awakening`;
-        generatedStoryText = `The air was thick and heavy in the ancient chamber. Shadows clung to the stone walls, retreating only when the glowing runes flared to life. ${getProtagonist(book)} stood in the center of the room, breathing deeply, feeling the surge of a dormant power awakening within. This was the moment foretold in the forgotten archives. "It is time," a voice echoed from the abyss, resonating with a celestial frequency. The ground trembled, and a blinding light erupted from the artifact resting on the pedestal. Everything ${getProtagonist(book)} knew was about to change. The true journey, filled with unimaginable perils and god-like adversaries, had finally begun.`;
+        // Use the unique story template for this book
+        let template = { opening: '' };
+        try {
+          template = getStoryTemplate(book.id);
+          console.log(`📚 Using story template for ${book.id}: ${template.protagonist}`);
+        } catch (templateErr) {
+          console.warn('Template not found, using generic fallback');
+        }
+        
+        // Use template opening, or provide a generic fallback
+        generatedStoryText = template.opening || 
+          `The air was thick and heavy in the ancient chamber. Shadows clung to the stone walls, retreating only when the glowing runes flared to life. ${getProtagonist(book)} stood in the center of the room, breathing deeply, feeling the surge of a dormant power awakening within. This was the moment foretold in the forgotten archives. "It is time," a voice echoed from the abyss, resonating with a celestial frequency. The ground trembled, and a blinding light erupted from the artifact resting on the pedestal. Everything ${getProtagonist(book)} knew was about to change. The true journey, filled with unimaginable perils and god-like adversaries, had finally begun.`;
+        
+        generatedTitle = `Chapter ${episodeNum}: ${template.protagonist ? template.protagonist + "'s Journey" : "The Awakening"}`;
 
-        // Create default character memory for fallback
+        // Create character memory from template or use default
         characterMemory = {
           traits: {
             personality: "determined, resourceful, evolving",
-            appearance: "ordinary looking, with subtle signs of power awakening",
-            goals: "survive, grow stronger, protect loved ones"
+            appearance: `${template.protagonist || getProtagonist(book)}`,
+            goals: template.protagonist ? `survive in ${template.genre} world` : "survive, grow stronger, protect loved ones"
           },
           relationships: {},
-          events: [`Chapter ${episodeNum} begins`],
-          worldState: { timeOfDay: "Unknown", location: "Mysterious place" }
+          events: [template.opening ? template.opening.split(".")[0] : `Chapter ${episodeNum} begins`],
+          worldState: { 
+            timeOfDay: "Present", 
+            location: template.setting || "Mysterious place",
+            genre: template.genre || "fantasy"
+          }
         };
       }
 
