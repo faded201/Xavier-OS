@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
-import { getStoryTemplate } from './book-story-templates.js';
+import { getCompleteStory } from './complete-book-stories.js';
 
 const XavierOS = () => {
   // --- UI STATE ---
@@ -138,10 +138,10 @@ const XavierOS = () => {
   // Helper to fetch actual protagonist names for the portrait circles
   const getProtagonist = (book) => {
     try {
-      const template = getStoryTemplate(book.id);
-      return template.protagonist || 'epic fantasy protagonist';
+      const story = getCompleteStory(book.id);
+      return story.protagonist || 'epic fantasy protagonist';
     } catch (e) {
-      console.warn(`No template found for ${book.id}, using default protagonist`);
+      console.warn(`No story found for ${book.id}, using default protagonist`);
       return 'epic fantasy protagonist';
     }
   };
@@ -525,35 +525,35 @@ const XavierOS = () => {
           throw new Error("API Route not ok");
         }
       } catch(err) {
-        console.error("❌ AI Generation failed, using fallback:", err);
-        // Use the unique story template for this book
-        let template = { opening: '' };
+        console.error("❌ AI Generation failed, using complete story:", err);
+        // Use the complete story for this book
+        let story = { content: '' };
         try {
-          template = getStoryTemplate(book.id);
-          console.log(`📚 Using story template for ${book.id}: ${template.protagonist}`);
-        } catch (templateErr) {
-          console.warn('Template not found, using generic fallback');
+          story = getCompleteStory(book.id);
+          console.log(`📚 Using complete story for ${book.id}: "${story.title}" by ${story.protagonist}`);
+        } catch (storyErr) {
+          console.warn('Story not found, using generic fallback');
         }
         
-        // Use template opening, or provide a generic fallback
-        generatedStoryText = template.opening || 
+        // Use complete story content, or provide a generic fallback
+        generatedStoryText = story.content || 
           `The air was thick and heavy in the ancient chamber. Shadows clung to the stone walls, retreating only when the glowing runes flared to life. ${getProtagonist(book)} stood in the center of the room, breathing deeply, feeling the surge of a dormant power awakening within. This was the moment foretold in the forgotten archives. "It is time," a voice echoed from the abyss, resonating with a celestial frequency. The ground trembled, and a blinding light erupted from the artifact resting on the pedestal. Everything ${getProtagonist(book)} knew was about to change. The true journey, filled with unimaginable perils and god-like adversaries, had finally begun.`;
         
-        generatedTitle = `Chapter ${episodeNum}: ${template.protagonist ? template.protagonist + "'s Journey" : "The Awakening"}`;
+        generatedTitle = `${story.title || 'The Story'} - Chapter ${episodeNum}`;
 
-        // Create character memory from template or use default
+        // Create character memory from story or use default
         characterMemory = {
           traits: {
             personality: "determined, resourceful, evolving",
-            appearance: `${template.protagonist || getProtagonist(book)}`,
-            goals: template.protagonist ? `survive in ${template.genre} world` : "survive, grow stronger, protect loved ones"
+            appearance: `${story.protagonist || getProtagonist(book)}`,
+            goals: story.genre ? `face trials in ${story.genre}` : "survive, grow stronger, protect loved ones"
           },
           relationships: {},
-          events: [template.opening ? template.opening.split(".")[0] : `Chapter ${episodeNum} begins`],
+          events: [story.content ? story.content.split(".")[0] : `Chapter ${episodeNum} begins`],
           worldState: { 
             timeOfDay: "Present", 
-            location: template.setting || "Mysterious place",
-            genre: template.genre || "fantasy"
+            location: story.genre || "Mysterious place",
+            genre: story.genre || "fantasy"
           }
         };
       }

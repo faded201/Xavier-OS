@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createRequire } from 'module';
-import { getStoryTemplate } from './book-story-templates.js';
+import { getCompleteStory } from './complete-book-stories.js';
 
 const require = createRequire(import.meta.url);
 const app = express();
@@ -17,11 +17,11 @@ const generateHandler = async (req, res) => {
     // Get bookId from request body or query
     const bookId = req.body?.bookId || req.query?.bookId || 'my-vampire-system';
     
-    // Get the unique story template for this book
-    const template = getStoryTemplate(bookId);
+    // Get the complete story for this book
+    const story = getCompleteStory(bookId);
     
-    // Use the template's opening as the chapter text
-    const chapterText = template.opening;
+    // Use the complete story content as the chapter text
+    const chapterText = story.content;
 
     // Split into chunks for sequential playback
     const sentences = chapterText.replace(/([.!?])\s+/g, "$1|").split("|");
@@ -42,30 +42,29 @@ const generateHandler = async (req, res) => {
 
     res.json({
       chapter: chapterText,
-      chapterTitle: "Chapter 1: The Beginning",
+      chapterTitle: `${story.title} - Chapter 1`,
       wordCount: chapterText.split(" ").length,
       estimatedReadTime: Math.ceil(chapterText.split(" ").length / 200),
-      protagonist: template.protagonist,
-      setting: template.setting,
-      genre: template.genre,
-      series: template.series || bookId,
+      protagonist: story.protagonist,
+      genre: story.genre,
+      series: story.title,
       chunks: chunks, // Add chunks for proper playback
       characterMemory: {
         traits: {
           personality: "determined, resourceful, evolving",
-          appearance: `${template.protagonist} from ${template.setting}`,
-          goals: `overcome challenges in ${template.genre} world`
+          appearance: `${story.protagonist} from ${story.genre} world`,
+          goals: `overcome challenges in ${story.genre} world`
         },
         relationships: {},
-        events: [template.opening.split(".")[0]], // First sentence as opening event
+        events: [chapterText.split(".")[0]], // First sentence as opening event
         worldState: { 
           timeOfDay: "Present", 
-          location: template.setting,
-          genre: template.genre
+          location: story.genre,
+          genre: story.genre
         }
       },
       bookId: bookId,
-      aiModelUsed: "template-fallback"
+      aiModelUsed: "complete-story"
     });
   } catch (error) {
     console.error('API Error:', error);
