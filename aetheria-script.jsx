@@ -42,10 +42,65 @@ const XavierOS = () => {
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const [apiUsage, setApiUsage] = useState(typeof window !== 'undefined' ? parseInt(localStorage.getItem('api_usage') || '0') : 0);
 
+  // --- MOBILE & LOADING STATE ---
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
+  const [systemReady, setSystemReady] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+
   const audioRef = useRef(null);
   const bgmRef = useRef(null);
   const listeningTimer = useRef(0);
   const errorCount = useRef(0);
+
+  // Detect mobile device
+  useEffect(() => {
+    const detectMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const touchDevice = () => (
+        (navigator.maxTouchPoints > 0) ||
+        (navigator.msMaxTouchPoints > 0) ||
+        window.matchMedia('(pointer:coarse)').matches
+      );
+      
+      const isMobileDevice = mobile || touchDevice();
+      setIsMobile(isMobileDevice);
+      
+      // Show welcome on first mobile visit
+      if (isMobileDevice && !localStorage.getItem('xavier_mobile_visited')) {
+        setShowWelcome(true);
+        localStorage.setItem('xavier_mobile_visited', 'true');
+      }
+      
+      // Check system status on load
+      checkSystemStatus();
+    };
+
+    detectMobile();
+    window.addEventListener('resize', detectMobile);
+    
+    return () => window.removeEventListener('resize', detectMobile);
+  }, []);
+
+  // Check if all services are running
+  const checkSystemStatus = async () => {
+    try {
+      const response = await fetch('/api/status', { timeout: 3000 });
+      if (response.ok) {
+        setSystemReady(true);
+      }
+    } catch (e) {
+      setSystemReady(false);
+    }
+  };
+
+  // Loading animation helper
+  const showLoading = (text, duration = 2000) => {
+    setIsLoading(true);
+    setLoadingText(text);
+    setTimeout(() => setIsLoading(false), duration);
+  };
 
   // Set background music volume very low so it doesn't overpower the voice
   useEffect(() => {
@@ -231,6 +286,11 @@ const XavierOS = () => {
     const chunkText = chunksArray[index];
     setProgress(((index + 1) / chunksArray.length) * 100);
 
+    // Show loading animation on mobile
+    if (isMobile) {
+      showLoading('Generating audio...', 1500);
+    }
+
     // Generate images that actually follow the storyline based on the text chunk!
     const protagonist = getProtagonist(bookData);
     const safeText = chunkText.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 200);
@@ -346,6 +406,11 @@ const XavierOS = () => {
     setCurrentImage(null);
     setStoryContent(null);
     setProgress(0);
+
+    // Show loading animation on mobile
+    if (isMobile) {
+      showLoading('Generating story...', 500);
+    }
 
     let characterMemory = null; // Declare characterMemory variable
 
@@ -513,6 +578,48 @@ const XavierOS = () => {
 
   return (
     <div style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">{loadingText}</div>
+          <div className="loading-dots">
+            <div className="loading-dot"></div>
+            <div className="loading-dot"></div>
+            <div className="loading-dot"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Welcome Screen */}
+      {showWelcome && isMobile && (
+        <div className="welcome-screen">
+          <div className="welcome-content">
+            <div className="welcome-icon">📖</div>
+            <h1 className="welcome-title">Aetheria.ai</h1>
+            <p className="welcome-subtitle">Emotional AI Audiobook Universe</p>
+            
+            <div className="welcome-info">
+              <h4><span className="welcome-emoji">🎵</span>Emotional Narration</h4>
+              <p>Stories read with emotion detection - happy, sad, angry, fearful, and more.</p>
+              
+              <h4 style={{marginTop: '16px'}}><span className="welcome-emoji">🎬</span>Dynamic Scenes</h4>
+              <p>Each chapter generates unique scene images synced with the narration.</p>
+              
+              <h4 style={{marginTop: '16px'}}><span className="welcome-emoji">📱</span>Mobile Optimized</h4>
+              <p>Smooth animations, touch controls, and responsive design for your device.</p>
+            </div>
+
+            <button 
+              className="welcome-btn"
+              onClick={() => setShowWelcome(false)}
+            >
+              Start Reading ✨
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Header */}
       <nav className="nav-header">

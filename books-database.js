@@ -1512,6 +1512,13 @@ const booksDatabase = [
     genre: "Memoir",
     cover: "Trevor%20Noah%20South%20Africa%20apartheid%20mixed%20race%20comedy%20memoir%20art",
     description: "Stories from a South African childhood."
+  },
+  {
+    id: "dune-messiah",
+    title: "Dune Messiah",
+    genre: "Science Fiction",
+    cover: "Paul%20Atreides%20Emperor%20Arrakis%20desert%20planet%20spice%20sandworm%20sci%20fi%20fantasy%20epic",
+    description: "Power corrupts. Absolute power corrupts the universe itself."
   }
 ];
 

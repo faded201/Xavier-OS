@@ -5,12 +5,12 @@
  * Runs on port 3003 as a drop-in replacement for CosyVoice
  */
 
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 const app = express();
 const PORT = process.env.PORT || 3003;
