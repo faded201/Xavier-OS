@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Xavier OS Audiobook Player</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            color: #fff;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        .player-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px 15px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 1.5em;
+            background: linear-gradient(45deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        /* Book Select */
+        .book-select-container { margin-bottom: 20px; }
+        .book-select {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            color: white;
+            font-size: 1em;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .book-select option { background: #1a1a2e; color: white; }
+        /* Title Animation */
+        .title-container {
+            text-align: center;
+            margin: 20px 0;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .book-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #e94560, #ff6b6b, #feca57, #48dbfb, #e94560);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.5s ease;
+        }
+        .book-title.visible { opacity: 1; transform: scale(1); }
+        .book-title.hiding { opacity: 0; transform: scale(1.1); }
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        /* Chapter Info */
+        .chapter-info {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.95em;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        /* Story Text Display */
+        .story-display {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 120px;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.6;
+            font-size: 1em;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .story-text {
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        .story-text.fade-out { opacity: 0.3; }
+        /* Progress */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin: 15px 0;
+            cursor: pointer;
+            position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.85em;
+        }
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 0;
+        }
+        .control-btn {
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+        .control-btn:active { transform: scale(0.9); }
+        .control-btn.small { width: 50px; height: 50px; }
+        .control-btn.large { width: 80px; height: 80px; }
+        .control-btn svg { width: 24px; height: 24px; fill: currentColor; }
+        .control-btn.small svg { width: 20px; height: 20px; }
+        .control-btn.large svg { width: 32px; height: 32px; }
+        /* Status */
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        .status-dot.loading { background: #ff9800; }
+        .status-dot.error { background: #f44336; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        .status-text { color: rgba(255,255,255,0.8); font-size: 0.9em; }
+        .emotion-badge {
+            padding: 4px 12px;
+            background: rgba(233,69,96,0.3);
+            border-radius: 20px;
+            font-size: 0.8em;
+            border: 1px solid rgba(233,69,96,0.5);
+            text-transform: capitalize;
+        }
+        /* Volume */
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            padding: 10px;
+        }
+        .volume-slider {
+            width: 120px;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #e94560;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .volume-icon { color: rgba(255,255,255,0.7); }
+        /* Wake lock indicator */
+        .wake-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: rgba(76,175,80,0.3);
+            border-radius: 20px;
+            font-size: 0.75em;
+            display: none;
+        }
+        .wake-indicator.active { display: block; }
+        /* Loading spinner */
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Error message */
+        .error-message {
+            background: rgba(244,67,54,0.2);
+            border: 1px solid rgba(244,67,54,0.5);
+            color: #ef5350;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+        /* Image display */
+        .image-container {
+            width: 100%;
+            height: 180px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .scene-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.5s ease;
+        }
+        .image-placeholder {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="wake-indicator" id="wakeIndicator">🔒 Screen stay-on active</div>
+    
+    <div class="player-container">
+        <div class="header">
+            <h1>🎧 Xavier OS Audiobook</h1>
+        </div>
+        
+        <div class="book-select-container">
+            <select class="book-select" id="bookSelect">
+                <option value="my-vampire-system">My Vampire System</option>
+                <option value="shadow-monarch">Shadow Monarch</option>
+                <option value="my-dragonic-system">My Dragonic System</option>
+                <option value="birth-demonic-sword">Birth of a Demonic Sword</option>
+                <option value="legendary-beast-tamer">Legendary Beast Tamer</option>
+                <option value="heavenly-thief">Heavenly Thief</option>
+                <option value="nano-machine">Nano Machine</option>
+                <option value="solo-leveling">Solo Leveling</option>
+            </select>
+        </div>
+        
+        <div class="title-container">
+            <h2 class="book-title" id="bookTitle">Select a Book</h2>
+        </div>
+        
+        <div class="chapter-info" id="chapterInfo">Ready to read</div>
+        
+        <div class="image-container" id="imageContainer">
+            <span class="image-placeholder">Image will appear here</span>
+            <img class="scene-image" id="sceneImage" style="display:none;" alt="Scene">
+        </div>
+        
+        <div class="story-display">
+            <p class="story-text" id="storyText">Choose a book and tap play to start listening</p>
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="time-display">
+            <span id="currentTime">0:00</span>
+            <span id="totalTime">0:00</span>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn small" id="prevBtn" aria-label="Previous">
+                <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+            <button class="control-btn large" id="playBtn" aria-label="Play/Pause">
+                <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="control-btn small" id="nextBtn" aria-label="Next">
+                <svg viewBox="0 0 24 24"><path d="M6 19l11-7L6 5v14zM18 6h2v12h-2z"/></svg>
+            </button>
+        </div>
+        
+        <div class="volume-container">
+            <svg class="volume-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80">
+        </div>
+        
+        <div class="status-container">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">Ready</span>
+            <span class="emotion-badge" id="emotionBadge" style="display:none;"></span>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <script>
+    // ============================================
+    // XAVIER OS MOBILE AUDIOBOOK PLAYER
+    // Works on Samsung S20FE and all mobile devices
+    // Uses native TTS for reliable playback
+    // ============================================
+    class MobileAudiobookPlayer {
+        constructor() {
+            // State
+            this.isPlaying = false;
+            this.currentBook = 'my-vampire-system';
+            this.currentSegment = 0;
+            this.segments = [];
+            this.synth = window.speechSynthesis;
+            this.utterance = null;
+            this.wakeLock = null;
+            this.speechRate = 1.0;
+            this.voice = null;
+            this.totalText = '';
+            this.charIndex = 0;
+            
+            // Story database - complete stories for each book
+            this.stories = this.loadStories();
+            
+            // Bind elements
+            this.bindElements();
+            
+            // Initialize
+            this.init();
+        }
+        
+        loadStories() {
+            return {
+                'my-vampire-system': `Quinn Talen's eyes snapped open. His body burned with an intensity he had never felt before. The transformation was complete. The System had chosen him, and everything had changed.
+
+He could feel it now—the hunger. Not for food, but for blood. The vampire system within him demanded sustenance. Every drop of blood he consumed would make him stronger, faster, more powerful.
+
+Quinn stood up from the cold floor, his crimson eyes reflecting in the dim light. The weakest ability holder in his school was gone. In his place stood something new. Something dangerous.
+
+"The blood-drinking leveling system," Quinn whispered, feeling the power course through his veins. "It's harsh. Brutal. Unforgiving."
+
+But Quinn was a survivor. He had endured humiliation, pain, and rejection. Now, with the vampire system awakened within him, he would climb to the top. The question wasn't if he would survive—it was who would stand in his way.
+
+He looked at his reflection. Pale skin. Crimson eyes. Fangs that could extend at will. The person staring back was no longer entirely human.
+
+"Good," Quinn said with a cold smile. "Humanity never did me any favors."
+
+As night fell, Quinn Talen stepped out into the darkness, ready to begin his ascent. The vampire system had chosen him. And he would not waste this opportunity.`,
+
+                'shadow-monarch': `The double dungeon should have killed him. Sung Jin-Woo knew this as surely as he knew his own name. E-rank hunter. The weakest of the weak. A liability to every raid party foolish enough to accept him.
+
+But when the statues began to move, when the commandments carved into ancient stone demanded obedience, Jin-Woo made a choice that would change everything.
+
+"I accept."
+
+The words left his lips, and the world dissolved into darkness. When consciousness returned, so did something else. A presence. A system that only he could see.
+
+[Welcome, Player.]
+
+Jin-Woo stared at the floating text, heart racing. This wasn't an ability. This wasn't something an E-rank should have access to. This was something else entirely.
+
+[You have been chosen.]
+
+Chosen for what? He would soon find out. The shadows around him seemed to writhe with possibility. Monsters that had once terrified him now seemed... manageable.
+
+As Jin-Woo stood to leave the dungeon, he felt it. The shadows answering his call. They belonged to him now. And through them, he would remake his destiny.`,
+
+                'my-dragonic-system': `The dragon blood in Aeron's veins screamed to be released. What began as a simple awakening at the ancient temple had become the catalyst for his transformation.
+
+Scales erupted across his arms, shimmering with iridescent power. His eyes, once ordinary, now glowed with draconic fire. Each breath felt like inhaling pure energy.
+
+[Dragon Seal Broken: 1/9]
+[Transformation Stage: 1 - Hybrid Form]
+
+Aeron fell to his knees as another wave of power surged through him. The dragon within was waking up, and it demanded dominion over its new vessel.
+
+"The Dragon Peak will sense this," he gasped, watching as his fingernails hardened into claws. "The seal keepers will know."
+
+Let them know. Let them come. Aeron Draketh was no longer just human. He was part dragon now. And the dragon within him was no longer sleeping.
+
+With a roar that echoed across the mountains, Aeron spread wings that shouldn't exist. The age of dragons was returning. And he would be its herald.`,
+
+                'birth-demonic-sword': `The old blacksmith was dying. Cain Valdris knew this moment would come, but nothing could have prepared him for the truth his master shared with his final breath.
+
+"Forge it with your will, boy. Not with steel."
+
+The shard of demon bone pressed into Cain's palm pulsed with dark energy. That night, in the ruins of the forge, something impossible happened.
+
+The sword that emerged wasn't wrought from earth—it was born from the darkness within Cain's own soul.
+
+When Cain's fingers closed around the hilt, he felt it. The sword was alive. Hungry. It whispered to him in a language older than civilization itself.
+
+[First soul absorbed.]
+[Sword Evolution: 1/100]
+
+With every enemy defeated, the blade grew stronger. With every soul consumed, Cain himself changed. The line between wielder and weapon blurred.
+
+"I am becoming something," Cain murmured, watching as dark energy wreathed the blade. "Something more than human."
+
+The sword agreed. And together, they would forge a legend written in blood and shadow.`,
+
+                'legendary-beast-tamer': `Kael Wildheart stood before the legendary Phoenix, a creature that had never been captured, bonded, or tamed. Its flames burned with the heat of suns, and its spirit was as wild as the wind itself.
+
+Other tamers had tried. They brought chains, commands, domination. They all failed.
+
+But Kael understood something they didn't. You couldn't capture legendary creatures. You had to earn their loyalty.
+
+He began to sing—an ancient melody passed down through generations of his family. The Phoenix's flames dimmed, not in weakness, but in recognition.
+
+[Legendary Beast Bond Initiated]
+[Species: Phoenix]
+[Loyalty: Earning...]
+
+The great bird descended, its talons inches from Kael's face. Intelligent eyes studied him, searching for deception, for weakness, for false intention.
+
+Kael didn't flinch. He continued singing, pouring respect, partnership, and genuine admiration into every note.
+
+Finally, the Phoenix bowed its head. The bond sealed.
+
+As the creature's flames wrapped around him without burning, Kael smiled. This was just the beginning. One by one, the legendary beasts that should have been myths would answer his call.
+
+The age of the Beast King had begun.`,
+
+                'heavenly-thief': `The vault was impossible to breach. Forged by the gods themselves, protected by divine seals, guarded by celestial beings who never slept.
+
+Perfect.
+
+Zephyr Nightshade lived for the impossible. As a mortal thief with nothing but wits and shadows, he had already stolen from kings, emperors, and archmages.
+
+Now, he would steal from heaven itself.
+
+"The celestial treasures hold power beyond measure," Zephyr whispered, moving through the divine halls like smoke. "Star-silk that can cleave mountains. Golden light that can resurrect the dead."
+
+But the real prize was something the gods never wanted found—proof that they weren't eternal. That their power was borrowed from something older. Something darker.
+
+As Zephyr reached the inner sanctum, the gods began to realize the truth.
+
+He wasn't stealing from heaven.
+
+Heaven was stealing from them.
+
+And the Heavenly Thief always delivers.`,
+
+                'nano-machine': `Cheon Yeo-Woon opened his eyes in a cultivation sect, with no memory of his past and a nano-machine injection in his veins.
+
+The technology was alien—impossible—but it worked like cultivation. Better than cultivation.
+
+As he absorbed energy, the nano-machines reconstructed his body at the cellular level. He grew stronger. Faster. He evolved beyond the limits of human biology.
+
+[Nano Integration: 23%]
+[Cultivation Level: Foundation Stage 3]
+[Enhancement: Active]
+
+The sect masters couldn't explain it. The ancient art of cultivation was being rewritten in real time by technology that shouldn't exist.
+
+"What are you?" asked the sect leader, watching as Yeo-Woon's eyes flickered with digital light.
+
+"Something new," Yeo-Woon replied. "Something the world has never seen."
+
+With each breakthrough, he wasn't just becoming a master cultivator. He was becoming something engineered. Something the cultivation world might not survive.`,
+
+                'solo-leveling': `Sung Jin-Woo was ranked E-Class—the weakest hunter alive. While other hunters grew stronger through gates and dungeons, Jin-Woo remained stuck at the bottom.
+
+Then came the double dungeon. A death trap that shouldn't have existed.
+
+He should have died there.
+
+Instead, he awakened.
+
+[Welcome, Player.]
+
+A system appeared, visible only to him. Unlike anything seen before. Unlike anything imaginable.
+
+As the only Player in this world, he would level alone. Every monster defeated, every dungeon conquered, every boss vanquished fed his growth.
+
+[Level Up!]
+[Level Up!]
+[Level Up!]
+
+Soon, S-rank hunters were no match for him. Realms below began to fear him. And Jin-Woo, once the weakest, became the strongest force this world had ever known.
+
+The shadows belonged to him now. And through them, he would ascend.`,
+
+                'default': `The journey begins. Power awakens. Destiny calls.
+
+In a world where strength determines everything, where the strong rise and the weak fall, one hero emerges to challenge fate itself.
+
+This is the story of growth, of challenge, of overcoming impossible odds. The hero's path is never easy, but it is always worth walking.
+
+Power comes at a cost. Strength demands sacrifice. But for those brave enough to seek it, the rewards are infinite.
+
+The adventure begins now.`
+            };
+        }
+        
+        bindElements() {
+            this.bookTitle = document.getElementById('bookTitle');
+            this.chapterInfo = document.getElementById('chapterInfo');
+            this.storyText = document.getElementById('storyText');
+            this.progressBar = document.getElementById('progressBar');
+            this.progressContainer = document.getElementById('progressContainer');
+            this.currentTimeEl = document.getElementById('currentTime');
+            this.totalTimeEl = document.getElementById('totalTime');
+            this.playBtn = document.getElementById('playBtn');
+            this.prevBtn = document.getElementById('prevBtn');
+            this.nextBtn = document.getElementById('nextBtn');
+            this.volumeSlider = document.getElementById('volumeSlider');
+            this.statusDot = document.getElementById('statusDot');
+            this.statusText = document.getElementById('statusText');
+            this.emotionBadge = document.getElementById('emotionBadge');
+            this.errorMessage = document.getElementById('errorMessage');
+            this.sceneImage = document.getElementById('sceneImage');
+            this.bookSelect = document.getElementById('bookSelect');
+            this.wakeIndicator = document.getElementById('wakeIndicator');
+            
+            // Bind events
+            this.playBtn.addEventListener('click', () => this.togglePlay());
+            this.prevBtn.addEventListener('click', () => this.playPrevious());
+            this.nextBtn.addEventListener('click', () => this.playNext());
+            this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
+            this.bookSelect.addEventListener('change', (e) => this.loadBook(e.target.value));
+            this.progressContainer.addEventListener('click', (e) => this.seek(e));
+            
+            // Handle visibility change (prevent stopping when screen off)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && this.isPlaying) {
+                    this.resumePlayback();
+                }
+            });
+        }
+        
+        async init() {
+            this.setStatus('ready');
+            this.showTitle(this.currentBook);
+            this.loadVoice();
+            await this.requestWakeLock();
+        }
+        
+        async loadVoice() {
+            // Wait for voices to load
+            if (this.synth.getVoices().length > 0) {
+                this.setBestVoice();
+            } else {
+                this.synth.onvoiceschanged = () => this.setBestVoice();
+            }
+        }
+        
+        setBestVoice() {
+            const voices = this.synth.getVoices();
+            // Prefer English voices, then any voice
+            this.voice = voices.find(v => v.lang.includes('en')) || voices[0] || null;
+        }
+        
+        async requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    this.wakeLock = await navigator.wakeLock.request('screen');
+                    this.wakeIndicator.classList.add('active');
+                    this.wakeLock.addEventListener('release', () => {
+                        this.wakeIndicator.classList.remove('active');
+                    });
+                }
+            } catch (err) {
+                console.log('Wake lock not supported');
+            }
+        }
+        
+        showTitle(title, duration = 2500) {
+            const displayTitle = this.formatBookTitle(title);
+            this.bookTitle.textContent = displayTitle;
+            this.bookTitle.classList.remove('hiding');
+            this.bookTitle.classList.add('visible');
+            
+            setTimeout(() => {
+                this.bookTitle.classList.add('hiding');
+                this.bookTitle.classList.remove('visible');
+            }, duration);
+        }
+        
+        async togglePlay() {
+            if (this.isPlaying) {
+                this.pause();
+            } else {
+                if (this.synth.paused && this.synth.speaking) {
+                    this.resume();
+                } else {
+                    await this.startReading();
+                }
+            }
+        }
+        
+        async startReading() {
+            try {
+                this.setStatus('loading');
+                this.hideError();
+                
+                // Get story for current book
+                const story = this.stories[this.currentBook] || this.stories['default'];
+                this.totalText = story;
+                this.charIndex = 0;
+                
+                // Display story
+                this.storyText.textContent = story.substring(0, 200) + '...';
+                this.chapterInfo.textContent = `${this.formatBookTitle(this.currentBook)} - Reading...`;
+                
+                // Create utterance
+                this.utterance = new SpeechSynthesisUtterance(story);
+                this.utterance.voice = this.voice;
+                this.utterance.rate = this.speechRate;
+                this.utterance.volume = this.volumeSlider.value / 100;
+                this.utterance.pitch = 1.0;
+                
+                // Detect emotion for badge
+                const emotion = this.detectEmotion(story);
+                this.showEmotion(emotion);
+                
+                // Event handlers
+                this.utterance.onstart = () => {
+                    this.isPlaying = true;
+                    this.updatePlayButton();
+                    this.setStatus('playing');
+                };
+                
+                this.utterance.onend = () => {
+                    this.isPlaying = false;
+                    this.updatePlayButton();
+                    this.setStatus('finished');
+                };
+                
+                this.utterance.onerror = (event) => {
+                    this.isPlaying = false;
+                    this.updatePlayButton();
+                    this.setStatus('error');
+                    this.showError(`Playback error: ${event.error}`);
+                };
+                
+                this.utterance.onboundary = (event) => {
+                    if (event.name === 'word') {
+                        this.charIndex = event.charIndex;
+                        const progress = (event.charIndex / story.length) * 100;
+                        this.progressBar.style.width = `${progress}%`;
+                        this.updateTime(event.charIndex, story.length);
+                        // Highlight current text
+                        const currentText = story.substring(event.charIndex, event.charIndex + 100);
+                        this.storyText.textContent = currentText + (event.charIndex + 100 < story.length ? '...' : '');
+                    }
+                };
+                
+                // Start speaking
+                this.synth.speak(this.utterance);
+                
+                // Keep screen on
+                await this.requestWakeLock();
+                
+            } catch (error) {
+                this.setStatus('error');
+                this.showError(`Failed to start: ${error.message}`);
+            }
+        }
+        
+        pause() {
+            if (this.synth.speaking) {
+                this.synth.pause();
+            }
+            this.isPlaying = false;
+            this.updatePlayButton();
+            this.setStatus('paused');
+        }
+        
+        resume() {
+            if (this.synth.paused) {
+                this.synth.resume();
+                this.isPlaying = true;
+                this.updatePlayButton();
+                this.setStatus('playing');
+            }
+        }
+        
+        resumePlayback() {
+            if (!this.isPlaying && this.synth.speaking) {
+                this.synth.resume();
+                this.isPlaying = true;
+                this.updatePlayButton();
+            }
+        }
+        
+        playPrevious() {
+            this.stop();
+            this.charIndex = 0;
+            this.startReading();
+        }
+        
+        playNext() {
+            // Load next book
+            const books = Object.keys(this.stories);
+            const currentIndex = books.indexOf(this.currentBook);
+            const nextIndex = (currentIndex + 1) % books.length;
+            this.currentBook = books[nextIndex];
+            this.bookSelect.value = this.currentBook;
+            this.showTitle(this.currentBook);
+            this.stop();
+            setTimeout(() => this.startReading(), 500);
+        }
+        
+        stop() {
+            this.synth.cancel();
+            this.isPlaying = false;
+            this.progressBar.style.width = '0%';
+            this.updatePlayButton();
+            this.setStatus('ready');
+        }
+        
+        setVolume(value) {
+            if (this.utterance) {
+                this.utterance.volume = value / 100;
+            }
+        }
+        
+        seek(event) {
+            if (!this.synth.speaking) return;
+            
+            const rect = this.progressContainer.getBoundingClientRect();
+            const percent = (event.clientX - rect.left) / rect.width;
+            const newCharIndex = Math.floor(percent * this.totalText.length);
+            
+            // Restart from new position
+            this.stop();
+            this.charIndex = newCharIndex;
+            this.startReading();
+        }
+        
+        updatePlayButton() {
+            const icon = this.playBtn.querySelector('svg');
+            if (this.isPlaying) {
+                icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-2z"/>';
+            } else {
+                icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            }
+        }
+        
+        setStatus(status) {
+            this.statusDot.className = 'status-dot';
+            if (status === 'loading') this.statusDot.classList.add('loading');
+            if (status === 'error') this.statusDot.classList.add('error');
+            
+            const statusTexts = {
+                ready: 'Ready to play',
+                playing: 'Now Reading',
+                paused: 'Paused',
+                loading: 'Loading...',
+                error: 'Error occurred',
+                finished: 'Finished'
+            };
+            this.statusText.textContent = statusTexts[status] || status;
+        }
+        
+        showEmotion(emotion) {
+            this.emotionBadge.textContent = emotion;
+            this.emotionBadge.style.display = 'inline-block';
+        }
+        
+        detectEmotion(text) {
+            const lower = text.toLowerCase();
+            if (lower.includes('happy') || lower.includes('joy') || lower.includes('smile') || lower.includes('laugh')) return 'happy';
+            if (lower.includes('sad') || lower.includes('tear') || lower.includes('cry') || lower.includes('grief')) return 'sad';
+            if (lower.includes('angr') || lower.includes('furi') || lower.includes('hate') || lower.includes('rage')) return 'angry';
+            if (lower.includes('fear') || lower.includes('scared') || lower.includes('terror') || lower.includes('afraid')) return 'fearful';
+            if (lower.includes('surpris') || lower.includes('shock') || lower.includes('amaz') || lower.includes('wow')) return 'surprise';
+            return 'neutral';
+        }
+        
+        formatBookTitle(id) {
+            return id.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+        
+        formatTime(charIndex, totalChars) {
+            const totalDuration = this.totalText.length / 15; // Approx chars per second
+            const currentDuration = charIndex / 15;
+            
+            const currentMins = Math.floor(currentDuration / 60);
+            const currentSecs = Math.floor(currentDuration % 60);
+            const totalMins = Math.floor(totalDuration / 60);
+            const totalSecs = Math.floor(totalDuration % 60);
+            
+            this.currentTimeEl.textContent = `${currentMins}:${currentSecs.toString().padStart(2, '0')}`;
+            this.totalTimeEl.textContent = `${totalMins}:${totalSecs.toString().padStart(2, '0')}`;
+        }
+        
+        updateTime(current, total) {
+            const progress = (current / total) * 100;
+            this.progressBar.style.width = `${progress}%`;
+            this.formatTime(current, total);
+        }
+        
+        loadBook(bookId) {
+            this.currentBook = bookId;
+            this.showTitle(bookId);
+            this.stop();
+            this.chapterInfo.textContent = `${this.formatBookTitle(bookId)} - Ready`;
+            this.storyText.textContent = `Select play to start reading ${this.formatBookTitle(bookId)}`;
+        }
+        
+        showError(message) {
+            this.errorMessage.textContent = message;
+            this.errorMessage.style.display = 'block';
+            setTimeout(() => this.hideError(), 5000);
+        }
+        
+        hideError() {
+            this.errorMessage.style.display = 'none';
+        }
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        window.player = new MobileAudiobookPlayer();
+    });
+    </script>
+</body>
+</html>
