@@ -43,6 +43,13 @@ const XavierOS = () => {
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const [apiUsage, setApiUsage] = useState(typeof window !== 'undefined' ? parseInt(localStorage.getItem('api_usage') || '0') : 0);
 
+  // --- 90+ IMAGE GENERATION STATE ---
+  const [episodeImages, setEpisodeImages] = useState([]);
+  const [imageProgress, setImageProgress] = useState(0);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [imageScheduler, setImageScheduler] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   // --- MOBILE & LOADING STATE ---
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -363,113 +370,172 @@ const XavierOS = () => {
     const detectedEmotion = detectEmotion(chunkText);
     console.log(`🎬 Chunk ${index}: Detected emotion = ${detectedEmotion}`);
 
-    // Audio TTS Fetch - Try CosyVoice first, then fall back
-    const ttsEngine = localStorage.getItem('active_tts') || 'cosyvoice';
-    const googleKey = localStorage.getItem('google_api_key');
-    const noizKey = localStorage.getItem('noiz_api_key');
-
-    // Build TTS URL - CosyVoice with emotion detection
-    let url = `http://localhost:3002/api/tts?text=${encodeURIComponent(chunkText)}&emotion=${detectedEmotion}`;
-
-    if (ttsEngine === 'noiz' && noizKey) {
+    // === ROBUST TTS FETCHING WITH TIMEOUT & RETRY ===
+    let audioUrl = null;
+    let retries = 0;
+    const maxRetries = 2;
+    
+    while (retries < maxRetries && !audioUrl) {
       try {
-        const res = await fetch('https://api.noiz.ai/v1/audio/speech', {
-          method: 'POST', headers: { 'Authorization': `Bearer ${noizKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'tts-1', input: chunkText, voice: 'alloy' })
+        console.log(`🎵 [TTS] Attempt ${retries + 1}/${maxRetries} for chunk ${index}...`);
+        
+        // Create abort controller with timeout  
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+        
+        const ttsUrl = `http://localhost:3002/api/tts?text=${encodeURIComponent(chunkText)}&emotion=${detectedEmotion}`;
+        
+        const ttsRes = await fetch(ttsUrl, {
+          signal: controller.signal,
+          headers: { 
+            'Accept': 'audio/mpeg',
+            'Cache-Control': 'no-cache'
+          }
         });
-        if (res.ok) { const b = await res.blob(); url = URL.createObjectURL(b); }
-      } catch(e) { console.error('Noiz TTS error:', e); }
-    } else if (ttsEngine === 'google' && googleKey) {
-      try {
-        const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${googleKey}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: { text: chunkText }, voice: { languageCode: 'en-US', name: 'en-US-Journey-D' }, audioConfig: { audioEncoding: 'MP3' }})
-        });
-        if (res.ok) { const d = await res.json(); url = "data:audio/mp3;base64," + d.audioContent; }
-      } catch(e) { console.error('Google TTS error:', e); }
+        
+        clearTimeout(timeoutId);
+        
+        if (!ttsRes.ok) {
+          throw new Error(`TTS returned ${ttsRes.status}`);
+        }
+        
+        const audioBlob = await ttsRes.blob();
+        
+        if (audioBlob.size < 1000) {
+          throw new Error(`Audio too small: ${audioBlob.size} bytes (likely error response)`);
+        }
+        
+        audioUrl = URL.createObjectURL(audioBlob);
+        console.log(`✅ [TTS] Generated audio: ${audioBlob.size} bytes`);
+        
+      } catch (ttsErr) {
+        retries++;
+        console.warn(`⚠️  [TTS] Attempt ${retries} failed:`, ttsErr.message);
+        
+        if (ttsErr.name === 'AbortError') {
+          console.warn('⏱️  [TTS] Request timeout - server may be slow');
+        }
+        
+        if (retries < maxRetries) {
+          // Wait before retrying
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+    }
+    
+    // === FALLBACK: If all TTS attempts fail, create silent fallback ===
+    if (!audioUrl) {
+      console.error('❌ [TTS] All attempts failed - using 2 second silence fallback');
+      // Create minimal silent MP3 data (2 seconds of silence)
+      const silenceBase64 = 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAA//NkZAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU';
+      const silenceBinary = atob(silenceBase64);
+      const silenceBytes = new Uint8Array(silenceBinary.length);
+      for (let i = 0; i < silenceBinary.length; i++) {
+        silenceBytes[i] = silenceBinary.charCodeAt(i);
+      }
+      const silenceBlob = new Blob([silenceBytes], { type: 'audio/mpeg' });
+      audioUrl = URL.createObjectURL(silenceBlob);
+      setError(`Audio generation failed (${retries} retries). Playing silence - check server status.`);
     }
 
-    setAudioUrl(url);
+    setAudioUrl(audioUrl);
     
-    // Set up audio element with proper loading - Fix race condition
-    if (audioRef.current) {
-      // Reset the audio element to clear any previous state
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current.crossOrigin = 'anonymous';  // IMPORTANT: Allow cross-origin audio
+    // === ROBUST AUDIO PLAYBACK WITH PROMISE-BASED LOADING ===
+    if (!audioRef.current) {
+      console.error('❌ [Audio Setup] audioRef.current is null!');
+      return;
+    }
+
+    // Reset and prepare audio element
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    audioRef.current.crossOrigin = 'anonymous';
+    audioRef.current.preload = 'auto';
+    
+    console.log('🎵 [Audio Setup] Chunk', index, 'URL:', audioUrl.substring(0, 80) + '...');
+    
+    // === PROMISE-BASED AUDIO LOADING ===
+    return new Promise((resolvePlayback) => {
+      let isResolved = false;
       
-      console.log('🎵 [Audio Setup] Creating new audio handler for chunk', index);
-      console.log('🎵 [Audio Setup] URL:', url.substring(0, 60) + '...');
-      
-      // Create a handler that will definitely fire
-      const handleAudioReady = async () => {
-        console.log('🎵 [Audio Ready] Event fired - Duration:', audioRef.current?.duration, 'seconds');
-        
-        if (audioRef.current?.src) {
-          audioRef.current?.removeEventListener('canplaythrough', handleAudioReady);
-          audioRef.current?.removeEventListener('canplay', handleAudioReady);
-          
-          // Play audio with error handling
-          if (audioRef.current) {
-            try {
-              console.log('🎵 [Audio Play] Starting playback...');
-              const playPromise = audioRef.current.play();
-              
-              if (playPromise !== undefined) {
-                playPromise
-                  .then(() => {
-                    console.log('✅ [Audio Play] Playback started successfully');
-                    setIsPlaying(true);
-                    if(bgmRef.current) {
-                      bgmRef.current.volume = 0.08;
-                      bgmRef.current.play().catch(() => {});
-                    }
-                  })
-                  .catch(err => {
-                    console.error('❌ [Audio Play] Error:', err.message);
-                    setError('Audio playback failed: ' + err.message);
-                  });
-              }
-            } catch(err) {
-              console.error('❌ [Audio Play] Catch error:', err);
-              setError('Audio error: ' + err.message);
-            }
-          }
+      const cleanup = () => {
+        if (audioRef.current) {
+          audioRef.current.removeEventListener('canplaythrough', handleReady);
+          audioRef.current.removeEventListener('canplay', handleReady);
+          audioRef.current.removeEventListener('error', handleError);
+          audioRef.current.removeEventListener('loadedmetadata', handleMetadata);
         }
       };
       
-      // Listen for both canplay and canplaythrough
-      audioRef.current.addEventListener('canplaythrough', handleAudioReady, { once: true });
-      audioRef.current.addEventListener('canplay', handleAudioReady, { once: true });
-      audioRef.current.addEventListener('error', (e) => {
-        console.error('❌ [Audio Error] Event:', e.target.error?.message || 'unknown');
-        setError('Audio load error: Network or format issue');
-      });
+      const handleReady = async () => {
+        if (isResolved) return;
+        isResolved = true;
+        cleanup();
+        
+        console.log('🎵 [Audio Ready] Ready to play - Duration:', audioRef.current?.duration, 'seconds');
+        
+        try {
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            console.log('✅ [Audio Play] Playback started');
+            setIsPlaying(true);
+            if (bgmRef.current) {
+              bgmRef.current.volume = 0.08;
+              bgmRef.current.play().catch(() => {});
+            }
+            resolvePlayback(true);
+          }
+        } catch (err) {
+          console.error('❌ [Audio Play]', err.message);
+          setError('Audio playback failed: ' + err.message);
+          resolvePlayback(false);
+        }
+      };
+      
+      const handleMetadata = () => {
+        console.log('🎵 [Audio Metadata] Loaded - Duration:', audioRef.current?.duration);
+      };
+      
+      const handleError = (e) => {
+        if (isResolved) return;
+        isResolved = true;
+        cleanup();
+        
+        const errorMsg = audioRef.current?.error?.message || 'Unknown error';
+        console.error('❌ [Audio Error]', errorMsg);
+        setError('Audio error: ' + errorMsg);
+        resolvePlayback(false);
+        
+        // Skip to next chunk after error
+        setTimeout(() => {
+          if (storyContent && playlistIndex < storyContent.chunks.length - 1) {
+            handleAudioEnded();
+          }
+        }, 500);
+      };
+      
+      // Attach listeners
+      audioRef.current.addEventListener('canplaythrough', handleReady, { once: true });
+      audioRef.current.addEventListener('canplay', handleReady, { once: true });
+      audioRef.current.addEventListener('loadedmetadata', handleMetadata, { once: true });
+      audioRef.current.addEventListener('error', handleError, { once: true });
       
       // Set source and load
-      audioRef.current.src = url;
-      console.log('🎵 [Audio Setup] src set, calling load()');
+      audioRef.current.src = audioUrl;
+      audioRef.current.load();
+      console.log('🎵 [Audio Setup] load() called');
       
-      // Try to load the audio
-      try {
-        audioRef.current.load();
-        console.log('🎵 [Audio Setup] load() called successfully');
-      } catch(e) {
-        console.error('❌ [Audio Setup] Error calling load():', e);
-      }
-      
-      // Fallback: try immediate play after short delay in case it's already buffered
-      setTimeout(() => {
-        if (audioRef.current && audioRef.current.readyState >= 2) {
-          console.log('🎵 [Audio Fallback] readyState >= 2, triggering play via setTimeout');
-          handleAudioReady();
-        } else {
-          console.log('🎵 [Audio Fallback] readyState:', audioRef.current?.readyState, '(waiting for events)');
+      // Timeout failsafe: if no event fires in 5 seconds, force play attempt
+      const timeoutHandle = setTimeout(() => {
+        if (!isResolved && audioRef.current?.readyState >= 2) {
+          console.log('🎵 [Audio Fallback] Timeout - forcing play at readyState', audioRef.current.readyState);
+          handleReady();
+        } else if (!isResolved) {
+          console.warn('🎵 [Audio Fallback] Timeout but readyState too low:', audioRef.current?.readyState);
         }
-      }, 500);
-    }
-    
-    return url;
+      }, 5000);
+    });
   };
 
   // Player & Generation Logic
@@ -591,6 +657,38 @@ const XavierOS = () => {
         characterMemory: characterMemory
       });
 
+      // ========================================================================
+      // 📸 START 90+ IMAGE GENERATION IN BACKGROUND
+      // ========================================================================
+      console.log('🎬 [Images] Starting generation of 90+ images for this episode...');
+      setIsGeneratingImages(true);
+
+      // Call the image batch generation API
+      fetch('/api/images/generate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookId: book.id,
+          episodeNum: episodeNum,
+          storyChunks: chunks,
+          characterMemory: characterMemory,
+          bookData: {
+            title: book.title,
+            genre: book.genre,
+            id: book.id
+          }
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('✅ [Images]', data.message);
+          setIsGeneratingImages(false);
+        })
+        .catch(err => {
+          console.error('❌ [Images] Generation failed:', err);
+          setIsGeneratingImages(false);
+        });
+
       setPlaylistIndex(0);
       setIsAwakening(false);
       setIsPlaying(false); // Don't auto-play, let playChunk handle it
@@ -610,6 +708,27 @@ const XavierOS = () => {
     if (listeningTimer.current > 120) {
       listeningTimer.current = 0;
       gainXP(10);
+    }
+
+    // ========================================================================
+    // 📸 IMAGE SCHEDULING - Update image every ~15.3 seconds
+    // ========================================================================
+    if (audioRef.current && selectedBook) {
+      const currentTime = audioRef.current.currentTime;
+      const duration = audioRef.current.duration || 1380; // Default 23 minutes
+      const totalImages = 90; // Always 90 images per episode
+      const imageInterval = duration / totalImages; // Seconds per image
+
+      // Calculate which image should be showing
+      const nextImageIndex = Math.floor(currentTime / imageInterval);
+
+      if (nextImageIndex !== currentImageIndex && nextImageIndex < totalImages) {
+        setCurrentImageIndex(nextImageIndex);
+        setImageProgress(((nextImageIndex + 1) / totalImages) * 100);
+        
+        // Log image change
+        console.log(`📸 [Image] ${nextImageIndex + 1}/90 (${(currentTime / 60).toFixed(1)}m of ${(duration / 60).toFixed(0)}m)`);
+      }
     }
   };
 
@@ -631,40 +750,64 @@ const XavierOS = () => {
   };
 
   const handleAudioEnded = () => {
-    if (!storyContent || !storyContent.chunks) return; // Prevent async state loop crashes
+    if (!storyContent || !storyContent.chunks) {
+      console.warn('⚠️  handleAudioEnded: No storyContent or chunks');
+      return;
+    }
 
     // Make sure audio actually played (prevent instant skip if duration is 0 or invalid)
     const duration = audioRef.current?.duration || 0;
-    console.log('Audio ended - Duration was:', duration, 'Current chunk:', playlistIndex, 'Total chunks:', storyContent.chunks.length);
+    console.log('🎵 Audio ended - Duration was:', duration, 'Current chunk:', playlistIndex, 'Total chunks:', storyContent.chunks.length);
     
     if (playlistIndex < storyContent.chunks.length - 1) {
       const nextIdx = playlistIndex + 1;
+      console.log(`📖 Moving to chunk ${nextIdx} of ${storyContent.chunks.length}`);
       setPlaylistIndex(nextIdx);
-      // Add small delay to let state update before playing next chunk
-      setTimeout(() => {
-        playChunk(storyContent.chunks, nextIdx, selectedBook, storyContent.characterMemory);
-      }, 300);
+      
+      // Add delay to let state update before playing next chunk
+      const playNextTimer = setTimeout(() => {
+        if (audioRef.current) {
+          playChunk(storyContent.chunks, nextIdx, selectedBook, storyContent.characterMemory)
+            .catch(err => {
+              console.error('❌ playChunk error:', err);
+              // Force skip to next on error
+              setTimeout(() => handleAudioEnded(), 500);
+            });
+        }
+      }, 400);
+      
+      return () => clearTimeout(playNextTimer);
     } else {
+      console.log('✅ All chunks completed!');
       setIsPlaying(false);
       gainXP(50);
+      setError(null);
       // Do NOT auto-advance to next episode - let user control navigation
-      // awakenBook(selectedBook, currentEpisode + 1);
     }
   };
 
   const handleAudioError = (e) => {
     errorCount.current += 1;
-    console.error('Audio error (attempt ' + errorCount.current + '):', e);
-    if (errorCount.current >= 5) { // Increased threshold from 3 to 5
-      setError("Voice API connection lost or rate-limited. Try again or select next chapter.");
+    console.error('❌ Audio error (attempt ' + errorCount.current + '):', e);
+    
+    // Allow up to 10 errors before giving up (most chunks should work)
+    if (errorCount.current >= 10) {
+      setError("Voice API connection lost. Try refreshing or selecting another chapter.");
       setIsPlaying(false);
       if (audioRef.current) audioRef.current.pause();
       if (bgmRef.current) bgmRef.current.pause();
       return;
     }
-    // Skip to next chunk instead of stopping completely
-    if (storyContent && storyContent.chunks) {
-      handleAudioEnded();
+    
+    // Skip to next chunk automatically to keep story flowing
+    console.log('⏭️  Skipping to next chunk due to audio error...');
+    if (storyContent && storyContent.chunks && playlistIndex < storyContent.chunks.length - 1) {
+      const skipTimer = setTimeout(() => {
+        handleAudioEnded();
+      }, 800);
+      return () => clearTimeout(skipTimer);
+    } else {
+      setIsPlaying(false);
     }
   };
 
@@ -962,13 +1105,84 @@ const XavierOS = () => {
 
             <div className="player-content">
               <div className="player-left">
-                <div className="scene-image-container">
+                <div className="scene-image-container" style={{position: 'relative'}}>
                   {isAwakening ? (
                     <div style={{display: 'flex', alignItems:'center', justifyContent:'center', height:'100%', color: 'var(--gold-primary)'}}>Summoning knowledge...</div>
+                  ) : isGeneratingImages ? (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems:'center',
+                      justifyContent:'center',
+                      height:'100%',
+                      color: '#00ffcc',
+                      gap: '20px'
+                    }}>
+                      <div style={{fontSize: '48px', animation: 'spin 2s linear infinite'}}>🎬</div>
+                      <div style={{fontSize: '16px', fontWeight: 'bold'}}>Generating 90 images...</div>
+                      <div style={{fontSize: '13px', opacity: 0.7}}>~8-12 minutes • Images display during playback</div>
+                    </div>
                   ) : currentImage ? (
-                    <img src={currentImage} alt="Story Scene" className="player-scene-image" />
-                  ) : null}
+                    <>
+                      <img src={currentImage} alt="Story Scene" className="player-scene-image" />
+                      
+                      {/* Image Counter Badge */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '20px',
+                        right: '20px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: '#00ffcc',
+                        padding: '12px 20px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        backdropFilter: 'blur(10px)',
+                        zIndex: 10
+                      }}>
+                        {currentImageIndex + 1} / 90
+                      </div>
+
+                      {/* Progress Bar at Bottom */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: '4px',
+                        backgroundColor: 'rgba(0, 255, 204, 0.2)',
+                        zIndex: 10
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${imageProgress}%`,
+                          backgroundColor: '#00ffcc',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{display: 'flex', alignItems:'center', justifyContent:'center', height:'100%', color: '#666', fontSize: '14px'}}>
+                      Preparing visuals...
+                    </div>
+                  )}
                 </div>
+
+                {/* Image Generation Status Below */}
+                {isGeneratingImages && (
+                  <div style={{
+                    padding: '12px',
+                    marginTop: '8px',
+                    backgroundColor: 'rgba(0, 255, 204, 0.1)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#00ffcc',
+                    border: '1px solid rgba(0, 255, 204, 0.3)',
+                    textAlign: 'center'
+                  }}>
+                    📸 Generating 90 diverse images for your audiobook experience
+                  </div>
+                )}
               </div>
 
               <div className="player-right">
@@ -1088,22 +1302,40 @@ const XavierOS = () => {
       <audio
         ref={audioRef}
         autoPlay={false}
+        crossOrigin="anonymous"
+        preload="auto"
+        controlsList="nodownload"
         onPlay={() => {
+          console.log('🎵 [Audio Event] Play triggered');
           setIsPlaying(true);
+          errorCount.current = 0; // Reset error counter on successful play
           if(bgmRef.current) {
             bgmRef.current.volume = 0.08;
-            bgmRef.current.play();
+            bgmRef.current.play().catch(e => console.warn('BGM play failed:', e));
           }
         }}
         onPause={() => {
+          console.log('🎵 [Audio Event] Pause triggered');
           setIsPlaying(false);
           if(bgmRef.current) bgmRef.current.pause();
         }}
         onTimeUpdate={handleTimeUpdate}
-        onEnded={handleAudioEnded}
-        onError={handleAudioError}
+        onEnded={() => {
+          console.log('🎵 [Audio Event] Ended triggered - moving to next chunk');
+          handleAudioEnded();
+        }}
+        onError={(e) => {
+          console.error('🎵 [Audio Event] Error triggered:', e.currentTarget.error);
+          handleAudioError(e);
+        }}
         onLoadedMetadata={() => {
-          console.log('Audio metadata loaded - Duration:', audioRef.current?.duration);
+          console.log('🎵 [Audio Event] Metadata loaded - Duration:', audioRef.current?.duration);
+        }}
+        onCanPlay={() => {
+          console.log('🎵 [Audio Event] Can play - readyState: ', audioRef.current?.readyState);
+        }}
+        onCanPlayThrough={() => {
+          console.log('🎵 [Audio Event] Can play through - fully buffered');
         }}
         style={{ display: 'none' }}
       />
